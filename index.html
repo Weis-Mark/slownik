@@ -628,13 +628,16 @@ async function init() {
   filtered = allEntries;
   updateStats();
   renderList();
-  document.getElementById('loadingMsg').style.display = 'none';
+  const lm = document.getElementById('loadingMsg');
+  if (lm) lm.style.display = 'none';
   setProgress(100, '');
 }
 
 function setProgress(pct, label) {
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressLabel').textContent = label;
+  const fill = document.getElementById('progressFill');
+  const lbl = document.getElementById('progressLabel');
+  if (fill) fill.style.width = pct + '%';
+  if (lbl) lbl.textContent = label;
 }
 
 async function loadSampleData() {
