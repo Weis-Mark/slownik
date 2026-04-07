@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1208">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Słownik NO-PL">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Słownik Norwesko-Polski</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #f5f0e8;
+  --paper: #fdfaf4;
+  --ink: #1a1208;
+  --ink-soft: #4a3f2f;
+  --ink-faint: #9a8f7f;
+  --accent: #8b3a0f;
+  --accent2: #c4622a;
+  --line: #d8cfc0;
+  --highlight: #fff3cd;
+  --shadow: rgba(26,18,8,0.13);
+  --header-h: 58px;
+  --search-h: 58px;
+  --stats-h: 32px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+
+body{
+  font-family:'Source Sans 3',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  overscroll-behavior:none;
+}
+
+/* ── HEADER ── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--ink);
+  color:var(--bg);
+  height:var(--header-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  box-shadow:0 2px 12px rgba(0,0,0,.35);
+  padding-top:env(safe-area-inset-top);
+}
+
+.h-title{
+  font-family:'Libre Baskerville',serif;
+  font-size:1.05rem;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+  white-space:nowrap;
+}
+.h-flags{font-size:1.25rem;}
+
+.h-btns{display:flex;gap:6px;flex-shrink:0;}
+
+.hbtn{
+  font-family:'Source Sans 3',sans-serif;
+  font-size:0.75rem;font-weight:600;
+  padding:6px 11px;border:none;border-radius:4px;cursor:pointer;
+  letter-spacing:.04em;text-transform:uppercase;
+  transition:all .15s;
+}
+.hbtn-ghost{background:transparent;color:var(--bg);border:1px solid rgba(245,240,232,.35);}
+.hbtn-ghost:hover{background:rgba(245,240,232,.12);}
+.hbtn-accent{background:var(--accent);color:#fff;}
+.hbtn-accent:hover{background:var(--accent2);}
+
+/* ── SEARCH ── */
+.search-bar{
+  position:fixed;
+  top:calc(var(--header-h) + env(safe-area-inset-top));
+  left:0;right:0;z-index:99;
+  background:var(--paper);
+  border-bottom:1px solid var(--line);
+  padding:10px 14px;
+  display:flex;gap:8px;align-items:center;
+  box-shadow:0 1px 6px var(--shadow);
+}
+
+.search-input{
+  flex:1;
+  font-family:'Source Sans 3',sans-serif;font-size:1rem;
+  padding:9px 13px;
+  border:1.5px solid var(--line);border-radius:6px;
+  background:var(--bg);color:var(--ink);
+  outline:none;transition:border-color .15s;
+}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--ink-faint);}
+
+.search-clear{
+  background:var(--line);border:none;border-radius:50%;
+  width:30px;height:30px;cursor:pointer;
+  font-size:.95rem;color:var(--ink-soft);
+  display:none;align-items:center;justify-content:center;flex-shrink:0;
+}
+.search-clear.vis{display:flex;}
+
+/* ── STATS ── */
+.stats-bar{
+  position:fixed;
+  top:calc(var(--header-h) + var(--search-h) + env(safe-area-inset-top));
+  left:0;right:0;z-index:98;
+  background:var(--paper);
+  border-bottom:1px solid var(--line);
+  padding:5px 16px;
+  font-size:.78rem;color:var(--ink-faint);
+  display:flex;justify-content:space-between;align-items:center;
+}
+#stats-found{color:var(--accent);font-weight:600;display:none;}
+
+/* ── CONTENT ── */
+#content{
+  padding-top:calc(var(--header-h) + var(--search-h) + var(--stats-h) + env(safe-area-inset-top) + 8px);
+  padding-bottom:calc(80px + env(safe-area-inset-bottom));
+  padding-left:14px;padding-right:14px;
+  max-width:860px;margin:0 auto;
+}
+
+/* ── CARDS ── */
+.card{
+  background:var(--paper);
+  border:1px solid var(--line);border-radius:8px;
+  margin-bottom:10px;
+  box-shadow:0 1px 4px var(--shadow);
+  overflow:hidden;
+  transition:box-shadow .15s;
+}
+.card:hover{box-shadow:0 3px 12px var(--shadow);}
+
+.card-head{
+  padding:11px 14px 9px;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+  cursor:pointer;
+}
+
+.card-hw{
+  font-family:'Libre Baskerville',serif;
+  font-weight:700;font-size:1rem;
+  color:var(--accent);line-height:1.3;
+}
+.card-tr{
+  font-size:.92rem;color:var(--ink-soft);
+  margin-top:2px;line-height:1.4;
+}
+
+.card-meta{
+  display:flex;align-items:flex-start;gap:6px;flex-shrink:0;
+}
+.lang-badge{
+  font-size:.68rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.06em;padding:2px 7px;border-radius:20px;
+  background:var(--line);color:var(--ink-faint);
+  white-space:nowrap;margin-top:2px;
+}
+.card-actions{display:flex;gap:5px;}
+.iBtn{
+  background:none;border:1px solid var(--line);border-radius:4px;
+  padding:4px 8px;cursor:pointer;font-size:.82rem;color:var(--ink-soft);
+  transition:all .15s;
+}
+.iBtn:hover{background:var(--bg);border-color:var(--accent);color:var(--accent);}
+
+.card-body{
+  padding:0 14px 12px;
+  border-top:1px solid var(--line);
+  display:none;
+  animation:slideDown .18s ease;
+}
+.card-body.open{display:block;}
+
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+.c-desc{
+  font-style:italic;color:var(--ink-faint);font-size:.86rem;
+  margin-top:8px;line-height:1.5;
+}
+.c-meanings{margin-top:9px;}
+.meaning{
+  padding:5px 0 5px 14px;
+  border-left:2px solid var(--line);
+  margin-bottom:5px;font-size:.9rem;line-height:1.4;
+}
+.meaning-n{font-weight:700;color:var(--accent);font-size:.82rem;margin-right:3px;}
+.c-examples{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);}
+.example{
+  font-size:.86rem;color:var(--ink-soft);
+  margin-bottom:5px;padding-left:10px;
+  border-left:3px solid var(--highlight);line-height:1.5;
+}
+.ex-tr{font-style:italic;color:var(--ink-faint);font-size:.82rem;}
+
+mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
+
+/* ── EMPTY / LOADING ── */
+.center-msg{
+  text-align:center;padding:60px 20px;color:var(--ink-faint);
+}
+.center-msg .ico{font-size:2.8rem;margin-bottom:12px;}
+.center-msg p{font-size:.92rem;line-height:1.7;}
+
+.progress-wrap{
+  text-align:center;padding:50px 20px;
+}
+.progress-bar-bg{
+  width:100%;max-width:340px;height:8px;
+  background:var(--line);border-radius:4px;margin:14px auto;overflow:hidden;
+}
+.progress-bar-fill{
+  height:100%;background:var(--accent);border-radius:4px;
+  transition:width .3s ease;width:0%;
+}
+.progress-label{font-size:.82rem;color:var(--ink-faint);}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;
+  bottom:calc(22px + env(safe-area-inset-bottom));
+  right:18px;
+  width:54px;height:54px;border-radius:50%;
+  background:var(--accent);color:#fff;border:none;
+  font-size:1.55rem;cursor:pointer;
+  box-shadow:0 4px 16px rgba(139,58,15,.4);
+  z-index:90;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.fab:hover{background:var(--accent2);transform:scale(1.06);}
+
+/* ── MODAL ── */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(26,18,8,.58);z-index:200;
+  align-items:flex-start;justify-content:center;
+  padding:16px;overflow-y:auto;
+}
+.overlay.open{display:flex;}
+
+.modal{
+  background:var(--paper);border-radius:10px;
+  width:100%;max-width:640px;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  overflow:hidden;margin-top:8px;
+}
+
+.m-head{
+  background:var(--ink);color:var(--bg);
+  padding:15px 18px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.m-title{font-family:'Libre Baskerville',serif;font-size:.98rem;font-weight:700;}
+.m-close{
+  background:none;border:none;color:var(--bg);
+  font-size:1.25rem;cursor:pointer;padding:2px 6px;opacity:.7;
+}
+.m-close:hover{opacity:1;}
+.m-body{padding:18px;}
+.m-foot{
+  padding:13px 18px;border-top:1px solid var(--line);
+  display:flex;justify-content:flex-end;gap:9px;
+}
+
+/* Form */
+.fg{margin-bottom:14px;}
+.fl{
+  display:block;font-size:.78rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;
+  color:var(--ink-soft);margin-bottom:5px;
+}
+.fi,.fta,.fsel{
+  width:100%;font-family:'Source Sans 3',sans-serif;font-size:.93rem;
+  padding:8px 11px;border:1.5px solid var(--line);border-radius:6px;
+  background:var(--bg);color:var(--ink);outline:none;transition:border-color .15s;
+}
+.fi:focus,.fta:focus,.fsel:focus{border-color:var(--accent);}
+.fta{resize:vertical;min-height:72px;}
+
+.frow{display:flex;gap:11px;}
+.frow .fg{flex:1;}
+
+.sub-list{display:flex;flex-direction:column;gap:7px;}
+.sub-item{display:flex;gap:7px;align-items:flex-start;flex-direction:column;}
+.sub-item-row{display:flex;gap:7px;align-items:flex-start;width:100%;}
+.sub-item textarea{
+  flex:1;font-family:'Source Sans 3',sans-serif;font-size:.86rem;
+  padding:6px 9px;border:1.5px solid var(--line);border-radius:5px;
+  background:var(--bg);color:var(--ink);resize:vertical;min-height:48px;outline:none;
+}
+.sub-item textarea:focus{border-color:var(--accent);}
+.sub-rm{
+  background:none;border:1px solid var(--line);border-radius:4px;
+  padding:4px 7px;cursor:pointer;color:#c0392b;font-size:.85rem;flex-shrink:0;margin-top:2px;
+}
+.sub-rm:hover{background:#fde8e8;}
+.add-sub{
+  font-size:.8rem;font-weight:600;color:var(--accent);
+  background:none;border:1.5px dashed var(--accent2);
+  border-radius:5px;padding:6px 13px;cursor:pointer;margin-top:3px;
+  transition:all .15s;
+}
+.add-sub:hover{background:#fff3cd;}
+.sec-lbl{
+  font-size:.72rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--ink-faint);margin:9px 0 5px;
+}
+
+/* Buttons */
+.btn{
+  font-family:'Source Sans 3',sans-serif;
+  font-size:.8rem;font-weight:600;
+  padding:7px 14px;border:none;border-radius:4px;cursor:pointer;
+  text-transform:uppercase;letter-spacing:.04em;transition:all .15s;
+}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:var(--accent2);}
+.btn-muted{background:var(--line);color:var(--ink-soft);}
+.btn-muted:hover{background:#c8bfb0;}
+.btn-danger{background:#c0392b;color:#fff;}
+.btn-danger:hover{background:#e74c3c;}
+
+/* Import area */
+.imp-area{
+  width:100%;min-height:140px;
+  font-family:'Source Sans 3',sans-serif;font-size:.84rem;
+  padding:10px;border:1.5px solid var(--line);border-radius:6px;
+  background:var(--bg);color:var(--ink);resize:vertical;outline:none;
+}
+.imp-area:focus{border-color:var(--accent);}
+.hint{font-size:.78rem;color:var(--ink-faint);margin-top:5px;font-style:italic;}
+
+/* Toast */
+#toast{
+  position:fixed;
+  bottom:calc(84px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%) translateY(60px);
+  background:var(--ink);color:var(--bg);
+  padding:11px 20px;border-radius:6px;
+  font-size:.86rem;font-weight:600;
+  z-index:999;transition:transform .28s ease;
+  white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);
+  pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+/* Virtual scroll sentinel */
+#sentinel{height:1px;}
+
+@media(max-width:480px){
+  .h-title span:not(.h-flags){display:none;}
+  .frow{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-title">
+    <span class="h-flags">🇳🇴🇵🇱</span>
+    <span>Słownik Norwesko-Polski</span>
+  </div>
+  <div class="h-btns">
+    <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
+    <button class="hbtn hbtn-ghost" onclick="exportData()">Eksport</button>
+  </div>
+</header>
+
+<div class="search-bar">
+  <input class="search-input" id="searchInput" type="search"
+    placeholder="Szukaj hasła, tłumaczenia, przykładu…"
+    oninput="onSearch(this.value)" autocomplete="off" spellcheck="false">
+  <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+</div>
+
+<div class="stats-bar">
+  <span id="statsTotal">Ładowanie bazy danych…</span>
+  <span id="stats-found"></span>
+</div>
+
+<div id="content">
+  <div class="progress-wrap" id="loadingMsg">
+    <div class="ico" style="font-size:2.5rem">📖</div>
+    <div style="font-size:.95rem;color:var(--ink-soft);margin-bottom:12px;">Inicjalizacja bazy danych…</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">Proszę czekać…</div>
+  </div>
+</div>
+
+<button class="fab" onclick="openAdd()" title="Dodaj hasło">＋</button>
+
+<!-- ENTRY MODAL -->
+<div class="overlay" id="entryModal">
+  <div class="modal">
+    <div class="m-head">
+      <span class="m-title" id="modalTitle">Nowe hasło</span>
+      <button class="m-close" onclick="closeModal('entryModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="frow">
+        <div class="fg" style="flex:2">
+          <label class="fl">Hasło *</label>
+          <input class="fi" id="fHw" placeholder="np. en blamasje" autocomplete="off">
+        </div>
+        <div class="fg" style="flex:0 0 130px">
+          <label class="fl">Język</label>
+          <select class="fsel" id="fLang">
+            <option value="no">🇳🇴 Norweski</option>
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="en">🇬🇧 Angielski</option>
+            <option value="de">🇩🇪 Niemiecki</option>
+            <option value="la">🏛 Łacina</option>
+            <option value="ru">🇷🇺 Rosyjski</option>
+            <option value="es">🇪🇸 Hiszpański</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Tłumaczenie *</label>
+        <input class="fi" id="fTr" placeholder="np. blamaż, wpadka, plama">
+      </div>
+      <div class="fg">
+        <label class="fl">Opis / definicja</label>
+        <textarea class="fta" id="fDesc" placeholder="np. (noe som gjør at man blamerer seg)"></textarea>
+      </div>
+      <div class="fg">
+        <div class="sec-lbl">Dodatkowe znaczenia</div>
+        <div class="sub-list" id="meaningsList"></div>
+        <button class="add-sub" onclick="addMeaning()">＋ Dodaj znaczenie</button>
+      </div>
+      <div class="fg">
+        <div class="sec-lbl">Przykłady użycia</div>
+        <div class="sub-list" id="examplesList"></div>
+        <button class="add-sub" onclick="addExample()">＋ Dodaj przykład</button>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeModal('entryModal')">Anuluj</button>
+      <button class="btn btn-accent" onclick="saveEntry()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="overlay" id="importModal">
+  <div class="modal">
+    <div class="m-head">
+      <span class="m-title">Importuj dane (JSON)</span>
+      <button class="m-close" onclick="closeModal('importModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label class="fl">Wczytaj plik JSON</label>
+        <input type="file" id="importFile" accept=".json"
+          onchange="loadImportFile(this)"
+          style="font-size:.9rem;padding:6px 0;">
+        <p class="hint">Wybierz plik JSON wyeksportowany z tej aplikacji lub z innego urządzenia.</p>
+      </div>
+      <div class="fg">
+        <label class="fl">Lub wklej dane JSON</label>
+        <textarea class="imp-area" id="importText" placeholder='[{"headword":"en blamasje","lang":"no","translation":"blamaż","description":"","meanings":[],"examples":[]}]'></textarea>
+      </div>
+      <div class="fg">
+        <label class="fl">Tryb importu</label>
+        <select class="fsel" id="importMode">
+          <option value="merge">Scal — zachowaj istniejące + dodaj nowe</option>
+          <option value="replace">Zastąp wszystko (uwaga: usunie obecne hasła!)</option>
+        </select>
+      </div>
+      <div id="importProgress" style="display:none;margin-top:10px;">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="importFill"></div></div>
+        <div class="progress-label" id="importLabel">Importowanie…</div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeModal('importModal')">Anuluj</button>
+      <button class="btn btn-accent" onclick="doImport()">Importuj</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="overlay" id="deleteModal">
+  <div class="modal" style="max-width:380px">
+    <div class="m-head">
+      <span class="m-title">Usuń hasło</span>
+      <button class="m-close" onclick="closeModal('deleteModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <p style="line-height:1.6">Czy usunąć hasło <strong id="delWord"></strong>?<br>
+      <small style="color:var(--ink-faint)">Tej operacji nie można cofnąć.</small></p>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeModal('deleteModal')">Anuluj</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Usuń</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// IndexedDB DATABASE LAYER
+// ═══════════════════════════════════════════════════════════
+
+const DB_NAME = 'SlownikDB';
+const DB_VER  = 1;
+const STORE   = 'entries';
+
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const store = d.createObjectStore(STORE, { keyPath: 'id' });
+        store.createIndex('headword', 'headword', { unique: false });
+        store.createIndex('lang', 'lang', { unique: false });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbCount() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    tx.objectStore(STORE).count().onsuccess = e => resolve(e.target.result);
+  });
+}
+
+function dbGetAll() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    tx.objectStore(STORE).getAll().onsuccess = e => resolve(e.target.result);
+  });
+}
+
+function dbPut(entry) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(entry).onsuccess = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(id).onsuccess = () => resolve();
+  });
+}
+
+function dbClear() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear().onsuccess = () => resolve();
+  });
+}
+
+async function dbBulkPut(entries, onProgress) {
+  const CHUNK = 500;
+  for (let i = 0; i < entries.length; i += CHUNK) {
+    const chunk = entries.slice(i, i + CHUNK);
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      chunk.forEach(e => store.put(e));
+      tx.oncomplete = resolve;
+      tx.onerror = e => reject(e.target.error);
+    });
+    if (onProgress) onProgress(Math.min(i + CHUNK, entries.length), entries.length);
+    await new Promise(r => setTimeout(r, 0)); // yield to UI
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════
+
+let allEntries   = [];   // full cache
+let filtered     = [];   // current search results
+let currentQuery = '';
+let editingId    = null;
+let deleteId     = null;
+
+// Virtual scroll
+let renderCount  = 50;
+const PAGE_SIZE  = 30;
+
+const LANG_LABELS = {
+  no:'Norweski', pl:'Polski', en:'Angielski',
+  de:'Niemiecki', la:'Łacina', ru:'Rosyjski', es:'Hiszpański'
+};
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+
+async function init() {
+  setProgress(10, 'Otwieranie bazy danych…');
+  await openDB();
+  setProgress(40, 'Wczytywanie haseł…');
+  allEntries = await dbGetAll();
+  allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+  setProgress(90, `Załadowano ${allEntries.length} haseł…`);
+  await new Promise(r => setTimeout(r, 100));
+
+  if (allEntries.length === 0) {
+    await loadSampleData();
+  }
+
+  filtered = allEntries;
+  updateStats();
+  renderList();
+  document.getElementById('loadingMsg').style.display = 'none';
+  setProgress(100, '');
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+async function loadSampleData() {
+  const samples = [
+    {id:genId(),lang:'no',headword:'en blamasje',translation:'blamaż, wpadka, plama, wsypa',description:'noe som gjør at man blamerer seg',meanings:[],examples:[{text:'en slem blamasje',translation:''},{text:'for å rette på blamasjen hadde han med et håndkyss forært henne sin bok',translation:''}]},
+    {id:genId(),lang:'no',headword:'en kneik',translation:'zagwozdka, szkopuł, trudność',description:'',meanings:[],examples:[]},
+    {id:genId(),lang:'no',headword:'en teknikalitet',translation:'technikalia, szczegóły techniczne',description:'formell detalj ved måten noe skal skje på',meanings:[],examples:[]},
+    {id:genId(),lang:'ru',headword:'что упало то пропало',translation:'co upadło to przepadło',description:'falt er tapt',meanings:[],examples:[]},
+    {id:genId(),lang:'la',headword:'in saecula saeculorum',translation:'na wieki wieków',description:'for evig og alltid',meanings:[],examples:[]},
+  ];
+  await dbBulkPut(samples);
+  allEntries = samples;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════
+
+function onSearch(q) {
+  currentQuery = q.trim().toLowerCase();
+  document.getElementById('searchClear').classList.toggle('vis', q.length > 0);
+  renderCount = 50;
+  
+  if (!currentQuery) {
+    filtered = allEntries;
+  } else {
+    filtered = allEntries.filter(e => matchEntry(e, currentQuery));
+  }
+  updateStats();
+  renderList();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  onSearch('');
+}
+
+function matchEntry(e, q) {
+  const fields = [
+    e.headword, e.translation, e.description,
+    ...(e.meanings||[]).map(m=>m.text),
+    ...(e.examples||[]).map(ex=>ex.text+' '+(ex.translation||''))
+  ];
+  return fields.some(f => f && f.toLowerCase().includes(q));
+}
+
+function updateStats() {
+  document.getElementById('statsTotal').textContent = `Łącznie: ${allEntries.length} haseł`;
+  const sf = document.getElementById('stats-found');
+  if (currentQuery) {
+    sf.textContent = `Znaleziono: ${filtered.length}`;
+    sf.style.display = 'inline';
+  } else {
+    sf.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER (virtual scroll)
+// ═══════════════════════════════════════════════════════════
+
+function renderList() {
+  const container = document.getElementById('content');
+  const toShow = filtered.slice(0, renderCount);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="center-msg">
+      <div class="ico">${currentQuery ? '🔍' : '📖'}</div>
+      <p>${currentQuery
+        ? `Nie znaleziono „<strong>${esc(currentQuery)}</strong>".<br>Spróbuj innego słowa lub dodaj nowe hasło.`
+        : 'Słownik jest pusty.<br>Kliknij <strong>＋</strong> aby dodać pierwsze hasło.'}</p>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = toShow.map(e => cardHtml(e)).join('') +
+    (filtered.length > renderCount ? '<div id="sentinel"></div>' : '');
+
+  // Observe sentinel for infinite scroll
+  const sentinel = document.getElementById('sentinel');
+  if (sentinel) {
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        obs.disconnect();
+        renderCount += PAGE_SIZE;
+        renderList();
+      }
+    }, { rootMargin: '200px' });
+    obs.observe(sentinel);
+  }
+}
+
+function cardHtml(e) {
+  const q = currentQuery;
+  const lang = LANG_LABELS[e.lang] || e.lang;
+  const hasMeanings = e.meanings && e.meanings.length > 0;
+  const hasExamples = e.examples && e.examples.length > 0;
+  const hasBody = e.description || hasMeanings || hasExamples;
+
+  const meaningsHtml = hasMeanings ? `<div class="c-meanings">${
+    e.meanings.map((m,i) => `<div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}${
+      m.translation ? `<div class="ex-tr">${hi(m.translation,q)}</div>` : ''}</div>`).join('')
+  }</div>` : '';
+
+  const examplesHtml = hasExamples ? `<div class="c-examples">${
+    e.examples.map(ex => `<div class="example">${hi(ex.text,q)}${
+      ex.translation ? `<div class="ex-tr">${hi(ex.translation,q)}</div>` : ''}</div>`).join('')
+  }</div>` : '';
+
+  const bodyHtml = hasBody ? `<div class="card-body" id="b-${e.id}">
+    ${e.description ? `<div class="c-desc">(${hi(e.description,q)})</div>` : ''}
+    ${meaningsHtml}${examplesHtml}
+  </div>` : '';
+
+  return `<div class="card" id="c-${e.id}">
+    <div class="card-head" onclick="${hasBody?`toggleBody('${e.id}')`:''}" style="${!hasBody?'cursor:default':''}">
+      <div style="flex:1;min-width:0">
+        <div class="card-hw">${hi(e.headword,q)}</div>
+        <div class="card-tr">${hi(e.translation,q)}</div>
+      </div>
+      <div class="card-meta">
+        <span class="lang-badge">${lang}</span>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="iBtn" onclick="openEdit('${e.id}')" title="Edytuj">✏️</button>
+          <button class="iBtn" onclick="openDel('${e.id}')" title="Usuń">🗑</button>
+        </div>
+      </div>
+    </div>
+    ${bodyHtml}
+  </div>`;
+}
+
+function toggleBody(id) {
+  const el = document.getElementById('b-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function hi(text, q) {
+  const s = esc(text||'');
+  if (!q) return s;
+  return s.replace(new RegExp('('+esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+  if (id === 'entryModal') editingId = null;
+}
+
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+});
+
+// ── ADD ──
+function openAdd() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Nowe hasło';
+  clearForm();
+  openModal('entryModal');
+  setTimeout(() => document.getElementById('fHw').focus(), 120);
+}
+
+// ── EDIT ──
+function openEdit(id) {
+  const e = allEntries.find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edytuj hasło';
+  document.getElementById('fHw').value    = e.headword   || '';
+  document.getElementById('fLang').value  = e.lang       || 'no';
+  document.getElementById('fTr').value    = e.translation|| '';
+  document.getElementById('fDesc').value  = e.description|| '';
+  document.getElementById('meaningsList').innerHTML = '';
+  document.getElementById('examplesList').innerHTML = '';
+  (e.meanings||[]).forEach(m => addMeaning(m.text, m.translation||''));
+  (e.examples||[]).forEach(ex => addExample(ex.text, ex.translation||''));
+  openModal('entryModal');
+  setTimeout(() => document.getElementById('fHw').focus(), 120);
+}
+
+// ── DELETE ──
+function openDel(id) {
+  deleteId = id;
+  const e = allEntries.find(x => x.id === id);
+  document.getElementById('delWord').textContent = e ? `„${e.headword}"` : '';
+  openModal('deleteModal');
+}
+
+async function confirmDelete() {
+  await dbDelete(deleteId);
+  allEntries = allEntries.filter(e => e.id !== deleteId);
+  filtered   = filtered.filter(e => e.id !== deleteId);
+  updateStats();
+  renderList();
+  closeModal('deleteModal');
+  toast('Hasło usunięte');
+}
+
+// ── FORM ──
+function clearForm() {
+  ['fHw','fTr','fDesc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fLang').value = 'no';
+  document.getElementById('meaningsList').innerHTML = '';
+  document.getElementById('examplesList').innerHTML = '';
+}
+
+function addMeaning(text='', tr='') {
+  const div = document.createElement('div');
+  div.className = 'sub-item';
+  div.innerHTML = `<div class="sub-item-row">
+    <textarea placeholder="Znaczenie / definicja…">${esc(text)}</textarea>
+    <button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button>
+  </div>`;
+  document.getElementById('meaningsList').appendChild(div);
+}
+
+function addExample(text='', tr='') {
+  const div = document.createElement('div');
+  div.className = 'sub-item';
+  div.innerHTML = `<div class="sub-item-row">
+    <textarea placeholder="Przykład użycia…">${esc(text)}</textarea>
+    <button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button>
+  </div>
+  <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="margin-top:4px;width:100%;">${esc(tr)}</textarea>`;
+  document.getElementById('examplesList').appendChild(div);
+}
+
+async function saveEntry() {
+  const hw = document.getElementById('fHw').value.trim();
+  const tr = document.getElementById('fTr').value.trim();
+  if (!hw || !tr) { toast('⚠ Hasło i tłumaczenie są wymagane'); return; }
+
+  const meanings = Array.from(document.querySelectorAll('#meaningsList .sub-item')).map(item => ({
+    text: item.querySelector('textarea').value.trim(), translation: ''
+  })).filter(m => m.text);
+
+  const examples = Array.from(document.querySelectorAll('#examplesList .sub-item')).map(item => {
+    const tas = item.querySelectorAll('textarea');
+    return { text: tas[0]?.value.trim()||'', translation: tas[1]?.value.trim()||'' };
+  }).filter(ex => ex.text);
+
+  const entry = {
+    id: editingId || genId(),
+    lang: document.getElementById('fLang').value,
+    headword: hw, translation: tr,
+    description: document.getElementById('fDesc').value.trim(),
+    meanings, examples
+  };
+
+  await dbPut(entry);
+
+  if (editingId) {
+    const idx = allEntries.findIndex(e => e.id === editingId);
+    if (idx >= 0) allEntries[idx] = entry;
+  } else {
+    allEntries.push(entry);
+    allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+  }
+
+  onSearch(document.getElementById('searchInput').value);
+  closeModal('entryModal');
+  toast(editingId ? '✓ Hasło zaktualizowane' : '✓ Hasło dodane');
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════════
+
+function exportData() {
+  toast('Przygotowuję eksport…');
+  setTimeout(async () => {
+    const all = await dbGetAll();
+    const json = JSON.stringify(all, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `slownik_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`✓ Wyeksportowano ${all.length} haseł`);
+  }, 50);
+}
+
+function openImport() {
+  document.getElementById('importText').value = '';
+  document.getElementById('importFile').value = '';
+  document.getElementById('importProgress').style.display = 'none';
+  openModal('importModal');
+}
+
+function loadImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('importText').value = e.target.result; };
+  reader.readAsText(file);
+}
+
+async function doImport() {
+  const raw = document.getElementById('importText').value.trim();
+  if (!raw) { toast('⚠ Wczytaj plik lub wklej dane JSON'); return; }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch(e) {
+    toast('⚠ Błąd formatu JSON'); return;
+  }
+  if (!Array.isArray(parsed)) { toast('⚠ Dane muszą być tablicą []'); return; }
+
+  // Normalize
+  parsed = parsed.map(e => ({
+    id:          e.id || genId(),
+    lang:        e.lang || 'no',
+    headword:    e.headword    || '',
+    translation: e.translation || '',
+    description: e.description || '',
+    meanings:    e.meanings    || [],
+    examples:    e.examples    || []
+  })).filter(e => e.headword);
+
+  const mode = document.getElementById('importMode').value;
+  const prog = document.getElementById('importProgress');
+  const fill = document.getElementById('importFill');
+  const lbl  = document.getElementById('importLabel');
+  prog.style.display = 'block';
+
+  if (mode === 'replace') {
+    lbl.textContent = 'Czyszczenie bazy…';
+    await dbClear();
+    allEntries = [];
+  } else {
+    // Merge: skip duplicates by headword+lang
+    const existing = new Set(allEntries.map(e => e.lang+'|'+e.headword.toLowerCase()));
+    parsed = parsed.filter(e => !existing.has(e.lang+'|'+e.headword.toLowerCase()));
+  }
+
+  lbl.textContent = `Importowanie 0 / ${parsed.length}…`;
+
+  await dbBulkPut(parsed, (done, total) => {
+    const pct = Math.round(done/total*100);
+    fill.style.width = pct + '%';
+    lbl.textContent = `Importowanie ${done} / ${total}…`;
+  });
+
+  // Reload cache
+  allEntries = await dbGetAll();
+  allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+
+  prog.style.display = 'none';
+  onSearch(document.getElementById('searchInput').value);
+  closeModal('importModal');
+  toast(`✓ Zaimportowano ${parsed.length} haseł. Łącznie: ${allEntries.length}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['entryModal','importModal','deleteModal'].forEach(id => {
+      if (document.getElementById(id).classList.contains('open')) closeModal(id);
+    });
+  }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════════════════════════════════
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
+
+init().catch(err => {
+  document.getElementById('content').innerHTML = `<div class="center-msg">
+    <div class="ico">⚠️</div>
+    <p>Błąd inicjalizacji bazy danych.<br><small>${err.message}</small></p>
+  </div>`;
+});
+</script>
+</body>
+</html>
