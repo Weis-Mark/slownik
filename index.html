@@ -251,6 +251,16 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 .imp-area:focus{border-color:var(--accent);}
 .hint{font-size:.78rem;color:var(--ink-faint);margin-top:5px;font-style:italic;}
 
+/* CUSTOM FIELDS */
+.custom-field{margin-bottom:8px;}
+.cf-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:3px;}
+.cf-value{font-size:.9rem;color:var(--ink-soft);line-height:1.5;padding:6px 10px;background:var(--bg);border-radius:5px;border-left:3px solid var(--accent2);}
+
+/* detail custom fields */
+.detail-cf{margin-bottom:10px;}
+.detail-cf-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:4px;}
+.detail-cf-value{font-size:.92rem;color:var(--ink-soft);line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:5px;border-left:3px solid var(--accent2);}
+
 /* TOAST */
 #toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);}
@@ -374,6 +384,11 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         <div class="sec-lbl">Przykłady użycia</div>
         <div class="sub-list" id="examplesList"></div>
         <button class="add-sub" onclick="addExample()">＋ Dodaj przykład</button>
+      </div>
+      <div class="fg">
+        <div class="sec-lbl">Własne rubryki (np. odmiana, rodzaj, uwagi…)</div>
+        <div class="sub-list" id="fieldsList"></div>
+        <button class="add-sub" onclick="addCustomField()">＋ Dodaj rubrykę</button>
       </div>
     </div>
     <div class="m-foot">
@@ -611,6 +626,10 @@ function openDetail(id){
     html+=`<div class="detail-section-title">Przykłady użycia</div>`;
     html+=e.examples.map(ex=>`<div class="detail-example">${esc(ex.text)}${ex.translation?`<div class="detail-ex-tr">${esc(ex.translation)}</div>`:''}</div>`).join('');
   }
+  if(e.fields&&e.fields.length>0){
+    html+=`<div class="detail-section-title">Własne rubryki</div>`;
+    html+=e.fields.map(f=>`<div class="detail-cf"><div class="detail-cf-label">${esc(f.label)}</div><div class="detail-cf-value">${esc(f.value)}</div></div>`).join('');
+  }
   document.getElementById('detailBody').innerHTML=html;
   document.getElementById('detailModal').classList.add('open');
   document.body.style.overflow='hidden';
@@ -652,7 +671,9 @@ function cardHtml(e){
   const hasBody=e.description||hasMeanings||hasExamples;
   const meaningsHtml=hasMeanings?`<div class="c-meanings">${e.meanings.map((m,i)=>`<div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}${m.translation?`<div class="ex-tr">${hi(m.translation,q)}</div>`:''}</div>`).join('')}</div>`:'';
   const examplesHtml=hasExamples?`<div class="c-examples">${e.examples.map(ex=>`<div class="example">${hi(ex.text,q)}${ex.translation?`<div class="ex-tr">${hi(ex.translation,q)}</div>`:''}</div>`).join('')}</div>`:'';
-  const bodyHtml=hasBody?`<div class="card-body" id="b-${e.id}">${e.description?`<div class="c-desc">(${hi(e.description,q)})</div>`:''}${meaningsHtml}${examplesHtml}</div>`:'';
+  const hasFields=e.fields&&e.fields.length>0;
+  const fieldsHtml=hasFields?`<div class="c-fields" style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">${e.fields.map(f=>`<div class="custom-field"><div class="cf-label">${esc(f.label)}</div><div class="cf-value">${esc(f.value)}</div></div>`).join('')}</div>`:'';
+  const bodyHtml=(hasBody||hasFields)?`<div class="card-body" id="b-${e.id}">${e.description?`<div class="c-desc">(${hi(e.description,q)})</div>`:''}${meaningsHtml}${examplesHtml}${fieldsHtml}</div>`:'';
   return `<div class="card" id="c-${e.id}">
     <div class="card-head" onclick="${hasBody?`toggleBody('${e.id}')`:''}" style="${!hasBody?'cursor:default':''}">
       <div style="flex:1;min-width:0">
@@ -704,6 +725,8 @@ function openEdit(id){
   document.getElementById('examplesList').innerHTML='';
   (e.meanings||[]).forEach(m=>addMeaning(m.text,m.translation||''));
   (e.examples||[]).forEach(ex=>addExample(ex.text,ex.translation||''));
+  document.getElementById('fieldsList').innerHTML='';
+  (e.fields||[]).forEach(f=>addCustomField(f.label||'',f.value||''));
   openModal('entryModal');
   setTimeout(()=>document.getElementById('fHw').focus(),120);
 }
@@ -716,11 +739,20 @@ async function confirmDelete(){
   if(currentQuery)renderPanel();
   closeModal('deleteModal');toast('Hasło usunięte');
 }
-function clearForm(){['fHw','fTr','fDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('examplesList').innerHTML='';}
+function clearForm(){['fHw','fTr','fDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('examplesList').innerHTML='';document.getElementById('fieldsList').innerHTML='';}
 function addMeaning(text='',tr=''){
   const div=document.createElement('div');div.className='sub-item';
   div.innerHTML=`<div class="sub-item-row"><textarea placeholder="Znaczenie / definicja…">${esc(text)}</textarea><button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button></div>`;
   document.getElementById('meaningsList').appendChild(div);
+}
+function addCustomField(label='',value=''){
+  const div=document.createElement('div');div.className='sub-item';
+  div.innerHTML=`<div class="sub-item-row" style="gap:6px;align-items:flex-start;">
+    <input type="text" class="fi" placeholder="Nazwa rubryki (np. odmiana)" style="flex:0 0 160px;min-width:0;font-size:.84rem;padding:6px 8px;" value="${esc(label)}">
+    <textarea placeholder="Treść…" style="flex:1;min-height:52px;">${esc(value)}</textarea>
+    <button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button>
+  </div>`;
+  document.getElementById('fieldsList').appendChild(div);
 }
 function addExample(text='',tr=''){
   const div=document.createElement('div');div.className='sub-item';
@@ -733,7 +765,8 @@ async function saveEntry(){
   if(!hw||!tr){toast('⚠ Hasło i tłumaczenie są wymagane');return;}
   const meanings=Array.from(document.querySelectorAll('#meaningsList .sub-item')).map(item=>({text:item.querySelector('textarea').value.trim(),translation:''})).filter(m=>m.text);
   const examples=Array.from(document.querySelectorAll('#examplesList .sub-item')).map(item=>{const tas=item.querySelectorAll('textarea');return{text:tas[0]?.value.trim()||'',translation:tas[1]?.value.trim()||''};}).filter(ex=>ex.text);
-  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:document.getElementById('fDesc').value.trim(),meanings,examples};
+  const fields=Array.from(document.querySelectorAll('#fieldsList .sub-item')).map(item=>{const inp=item.querySelector('input[type=text]');const ta=item.querySelector('textarea');return{label:inp?.value.trim()||'',value:ta?.value.trim()||''};}).filter(f=>f.label||f.value);
+  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:document.getElementById('fDesc').value.trim(),meanings,examples,fields};
   await dbPut(entry);
   if(editingId){const idx=allEntries.findIndex(e=>e.id===editingId);if(idx>=0)allEntries[idx]=entry;}
   else{allEntries.push(entry);allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));}
@@ -762,7 +795,7 @@ async function doImport(){
   if(!raw){toast('⚠ Wczytaj plik lub wklej dane JSON');return;}
   let parsed;try{parsed=JSON.parse(raw);}catch(e){toast('⚠ Błąd formatu JSON');return;}
   if(!Array.isArray(parsed)){toast('⚠ Dane muszą być tablicą []');return;}
-  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[]})).filter(e=>e.headword);
+  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[]})).filter(e=>e.headword);
   const mode=document.getElementById('importMode').value;
   const prog=document.getElementById('importProgress');
   const fill=document.getElementById('importFill');
