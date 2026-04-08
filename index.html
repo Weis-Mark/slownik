@@ -90,12 +90,22 @@ header{
   flex:1;
   font-family:'Source Sans 3',sans-serif;font-size:1rem;
   padding:9px 13px;
-  border:1.5px solid var(--line);border-radius:6px;
+  border:1.5px solid var(--line);border-radius:6px 0 0 6px;border-right:none;
   background:var(--bg);color:var(--ink);
   outline:none;transition:border-color .15s;
 }
 .search-input:focus{border-color:var(--accent);}
 .search-input::placeholder{color:var(--ink-faint);}
+
+.search-btn{
+  background:var(--accent);border:none;
+  border-radius:0 6px 6px 0;
+  padding:0 14px;cursor:pointer;
+  color:#fff;font-size:1.15rem;
+  flex-shrink:0;transition:background .15s;
+  height:42px;display:flex;align-items:center;justify-content:center;
+}
+.search-btn:hover{background:var(--accent2);}
 
 .search-clear{
   background:var(--line);border:none;border-radius:50%;
@@ -376,7 +386,9 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 <div class="search-bar">
   <input class="search-input" id="searchInput" type="search"
     placeholder="Szukaj hasła, tłumaczenia, przykładu…"
-    oninput="onSearch(this.value)" autocomplete="off" spellcheck="false">
+    onkeydown="if(event.key==='Enter')doSearch()"
+    autocomplete="off" spellcheck="false">
+  <button class="search-btn" onclick="doSearch()" title="Szukaj">🔍</button>
   <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
 </div>
 
@@ -655,6 +667,11 @@ async function loadSampleData() {
 // ═══════════════════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════════════════
+
+function doSearch() {
+  const q = document.getElementById('searchInput').value;
+  onSearch(q);
+}
 
 function onSearch(q) {
   currentQuery = q.trim().toLowerCase();
