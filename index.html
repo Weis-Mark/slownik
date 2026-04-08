@@ -92,7 +92,7 @@ header{
 .side-panel{
   position:fixed;
   top:calc(var(--header-h) + var(--search-h) + var(--stats-h) + env(safe-area-inset-top));
-  left:-var(--panel-w);left:calc(-1 * var(--panel-w));
+  left:-110vw;
   width:var(--panel-w);
   bottom:0;
   background:var(--paper);
@@ -100,7 +100,7 @@ header{
   box-shadow:3px 0 16px var(--shadow);
   z-index:95;
   display:flex;flex-direction:column;
-  transition:left .28s cubic-bezier(.4,0,.2,1);
+  transition:left .3s cubic-bezier(.4,0,.2,1);
   overflow:hidden;
 }
 .side-panel.open{left:0;}
@@ -256,11 +256,11 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 #sentinel{height:1px;}
 
-@media(max-width:600px){
+@media(max-width:768px){
   .h-title span:not(.h-flags){display:none;}
   .frow{flex-direction:column;}
   #content.shifted{margin-left:0;}
-  .side-panel{width:85vw;}
+  .side-panel{width:88vw;max-width:360px;}
 }
 </style>
 </head>
@@ -558,7 +558,7 @@ function openPanel(){
   panel.classList.add('open');
   overlay.classList.add('show');
   // shift content only on wide screens
-  if(window.innerWidth>600)content.classList.add('shifted');
+  if(window.innerWidth>768)content.classList.add('shifted');
   renderPanel();
 }
 function closePanel(){
