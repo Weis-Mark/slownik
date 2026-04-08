@@ -261,6 +261,22 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 .detail-cf-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:4px;}
 .detail-cf-value{font-size:.92rem;color:var(--ink-soft);line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:5px;border-left:3px solid var(--accent2);}
 
+/* MERGE & DUPLICATES */
+.tool-overlay{display:none;position:fixed;inset:0;background:rgba(26,18,8,.58);z-index:200;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+.tool-overlay.open{display:flex;}
+.merge-card{background:var(--paper);border:2px solid var(--line);border-radius:8px;margin-bottom:8px;padding:10px 14px;cursor:pointer;transition:all .15s;}
+.merge-card.selected{border-color:var(--accent);background:#fff8f0;}
+.merge-card .mc-hw{font-family:'Libre Baskerville',serif;font-weight:700;color:var(--accent);font-size:.95rem;}
+.merge-card .mc-tr{font-size:.85rem;color:var(--ink-soft);margin-top:2px;}
+.merge-card .mc-lang{font-size:.68rem;text-transform:uppercase;color:var(--ink-faint);margin-top:2px;}
+.dup-item{background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.dup-head{background:var(--highlight);padding:8px 14px;font-size:.8rem;font-weight:600;color:var(--accent);border-bottom:1px solid var(--line);}
+.dup-entry{padding:9px 14px;border-bottom:1px solid rgba(216,207,192,.4);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.dup-entry:last-child{border-bottom:none;}
+.dup-hw{font-family:'Libre Baskerville',serif;font-size:.9rem;font-weight:700;color:var(--accent);}
+.dup-tr{font-size:.82rem;color:var(--ink-soft);margin-top:1px;}
+.dup-btns{display:flex;gap:5px;flex-shrink:0;}
+
 /* TOAST */
 #toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);}
@@ -282,6 +298,8 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     <span>Słownik Norwesko-Polski</span>
   </div>
   <div class="h-btns">
+    <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓ Scal</button>
+    <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Znajdź duplikaty">🔍 Duplikaty</button>
     <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
     <button class="hbtn hbtn-ghost" onclick="exportData()">Eksport</button>
   </div>
@@ -448,6 +466,50 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     <div class="m-foot">
       <button class="btn btn-muted" onclick="closeModal('deleteModal')">Anuluj</button>
       <button class="btn btn-danger" onclick="confirmDelete()">Usuń</button>
+    </div>
+  </div>
+</div>
+
+<!-- MERGE MODAL -->
+<div class="tool-overlay" id="mergeModal">
+  <div class="modal" style="max-width:680px;">
+    <div class="m-head">
+      <span class="m-title">⛓ Scal hasła</span>
+      <button class="m-close" onclick="closeToolModal('mergeModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <p style="font-size:.88rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.6;">
+        Wyszukaj hasła do scalenia, zaznacz je klikając, a następnie kliknij <strong>Scal zaznaczone</strong>. 
+        Pierwsze zaznaczone hasło będzie hasłem głównym — pozostałe zostaną do niego dołączone.
+      </p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input class="fi" id="mergeSearch" placeholder="Szukaj hasła do scalenia…" 
+          oninput="renderMergeList(this.value)" style="flex:1;">
+        <button class="btn btn-muted" onclick="clearMergeSelection()">Odznacz wszystkie</button>
+      </div>
+      <div style="font-size:.8rem;color:var(--accent);font-weight:600;margin-bottom:6px;" id="mergeSelCount">Zaznaczono: 0</div>
+      <div id="mergeList" style="max-height:380px;overflow-y:auto;"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeToolModal('mergeModal')">Anuluj</button>
+      <button class="btn btn-accent" onclick="doMerge()">⛓ Scal zaznaczone</button>
+    </div>
+  </div>
+</div>
+
+<!-- DUPLICATES MODAL -->
+<div class="tool-overlay" id="dupModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="m-head">
+      <span class="m-title">🔍 Potencjalne duplikaty</span>
+      <button class="m-close" onclick="closeToolModal('dupModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <p style="font-size:.88rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.6;" id="dupSummary">Szukam duplikatów…</p>
+      <div id="dupList" style="max-height:440px;overflow-y:auto;"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeToolModal('dupModal')">Zamknij</button>
     </div>
   </div>
 </div>
@@ -710,6 +772,7 @@ function hi(text,q){
 function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';if(id==='entryModal')editingId=null;}
 document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);});});
+document.querySelectorAll('.tool-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)closeToolModal(o.id);});});
 document.getElementById('detailModal').addEventListener('click',e=>{if(e.target===document.getElementById('detailModal'))closeDetailModal();});
 
 function openAdd(){editingId=null;document.getElementById('modalTitle').textContent='Nowe hasło';clearForm();openModal('entryModal');setTimeout(()=>document.getElementById('fHw').focus(),120);}
@@ -826,6 +889,213 @@ document.addEventListener('keydown',e=>{
   }
   if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();document.getElementById('searchInput').focus();}
 });
+
+// ═══════════════════════════════════════════════════════════
+// MERGE
+// ═══════════════════════════════════════════════════════════
+let mergeSelected = new Set();
+
+function openMergeMode() {
+  mergeSelected.clear();
+  document.getElementById('mergeSearch').value = '';
+  document.getElementById('mergeSelCount').textContent = 'Zaznaczono: 0';
+  renderMergeList('');
+  document.getElementById('mergeModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeToolModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderMergeList(q) {
+  const list = document.getElementById('mergeList');
+  const qlow = q.trim().toLowerCase();
+  const items = qlow
+    ? allEntries.filter(e => e.headword.toLowerCase().includes(qlow) || e.translation.toLowerCase().includes(qlow))
+    : allEntries.slice(0, 100);
+  
+  if (items.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:.88rem;">Brak wyników</div>';
+    return;
+  }
+  
+  list.innerHTML = items.map(e => `
+    <div class="merge-card ${mergeSelected.has(e.id)?'selected':''}" onclick="toggleMergeSelect('${e.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="mc-hw">${esc(e.headword)}</div>
+          <div class="mc-tr">${esc(e.translation)}</div>
+          <div class="mc-lang">${LANG_LABELS[e.lang]||e.lang}</div>
+        </div>
+        <div style="font-size:1.2rem;">${mergeSelected.has(e.id)?'✅':''}</div>
+      </div>
+    </div>`).join('');
+  
+  if (!qlow && allEntries.length > 100) {
+    list.innerHTML += `<div style="padding:10px;text-align:center;font-size:.78rem;color:var(--ink-faint);">Wpisz szukaną frazę żeby znaleźć więcej haseł</div>`;
+  }
+}
+
+function toggleMergeSelect(id) {
+  if (mergeSelected.has(id)) mergeSelected.delete(id);
+  else mergeSelected.add(id);
+  document.getElementById('mergeSelCount').textContent = `Zaznaczono: ${mergeSelected.size}`;
+  renderMergeList(document.getElementById('mergeSearch').value);
+}
+
+function clearMergeSelection() {
+  mergeSelected.clear();
+  document.getElementById('mergeSelCount').textContent = 'Zaznaczono: 0';
+  renderMergeList(document.getElementById('mergeSearch').value);
+}
+
+async function doMerge() {
+  if (mergeSelected.size < 2) { toast('⚠ Zaznacz co najmniej 2 hasła do scalenia'); return; }
+  
+  const ids = Array.from(mergeSelected);
+  const entries = ids.map(id => allEntries.find(e => e.id === id)).filter(Boolean);
+  if (entries.length < 2) return;
+  
+  // First selected = main entry
+  const main = {...entries[0]};
+  const rest = entries.slice(1);
+  
+  // Merge: combine meanings, examples, fields, append translations
+  rest.forEach(e => {
+    // Append translation if different
+    if (e.translation && !main.translation.includes(e.translation)) {
+      main.translation += (main.translation ? ', ' : '') + e.translation;
+    }
+    // Append description
+    if (e.description && !main.description.includes(e.description)) {
+      main.description += (main.description ? '; ' : '') + e.description;
+    }
+    // Merge meanings
+    main.meanings = [...(main.meanings||[]), ...(e.meanings||[])];
+    // Merge examples
+    main.examples = [...(main.examples||[]), ...(e.examples||[])];
+    // Merge custom fields
+    main.fields = [...(main.fields||[]), ...(e.fields||[])];
+  });
+  
+  // Save main
+  await dbPut(main);
+  
+  // Delete rest
+  for (const e of rest) {
+    await dbDelete(e.id);
+  }
+  
+  // Update cache
+  allEntries = allEntries.filter(e => !ids.slice(1).includes(e.id));
+  const idx = allEntries.findIndex(e => e.id === main.id);
+  if (idx >= 0) allEntries[idx] = main;
+  allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+  
+  mergeSelected.clear();
+  onSearch(document.getElementById('searchInput').value);
+  closeToolModal('mergeModal');
+  toast(`✓ Scalono ${entries.length} haseł w jedno`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DUPLICATES
+// ═══════════════════════════════════════════════════════════
+function openDuplicates() {
+  document.getElementById('dupModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('dupSummary').textContent = 'Szukam duplikatów…';
+  document.getElementById('dupList').innerHTML = '';
+  setTimeout(findDuplicates, 50);
+}
+
+function findDuplicates() {
+  const groups = new Map();
+  
+  allEntries.forEach(e => {
+    // Normalize: lowercase, remove articles (en/et/ein), trim
+    const norm = e.headword.toLowerCase()
+      .replace(/^(en |et |ein |a |an |the )/i, '')
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+      .trim();
+    
+    if (!groups.has(norm)) groups.set(norm, []);
+    groups.get(norm).push(e);
+  });
+  
+  // Also find entries where one headword contains another
+  const dups = [];
+  groups.forEach((entries, key) => {
+    if (entries.length > 1) dups.push({key, entries, type: 'exact'});
+  });
+  
+  // Find near-duplicates (one starts with the other)
+  const keys = Array.from(groups.keys());
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = keys[i], b = keys[j];
+      if (a.length > 3 && b.length > 3) {
+        if (b.startsWith(a) || a.startsWith(b)) {
+          const entriesA = groups.get(a);
+          const entriesB = groups.get(b);
+          if (entriesA.length === 1 && entriesB.length === 1) {
+            dups.push({key: a + ' / ' + b, entries: [...entriesA, ...entriesB], type: 'similar'});
+          }
+        }
+      }
+    }
+  }
+  
+  // Limit to 100 groups
+  const limited = dups.slice(0, 100);
+  
+  const summary = document.getElementById('dupSummary');
+  const list = document.getElementById('dupList');
+  
+  if (limited.length === 0) {
+    summary.textContent = '✓ Nie znaleziono duplikatów!';
+    list.innerHTML = '';
+    return;
+  }
+  
+  summary.textContent = `Znaleziono ${dups.length} grup potencjalnych duplikatów${dups.length > 100 ? ' (pokazano 100)' : ''}. Kliknij "Edytuj" lub "Usuń" przy wybranych hasłach.`;
+  
+  list.innerHTML = limited.map(group => `
+    <div class="dup-item">
+      <div class="dup-head">${group.type === 'exact' ? '🔴 Identyczne' : '🟡 Podobne'}: „${esc(group.key)}" — ${group.entries.length} haseł</div>
+      ${group.entries.map(e => `
+        <div class="dup-entry">
+          <div style="flex:1;min-width:0;">
+            <div class="dup-hw">${esc(e.headword)}</div>
+            <div class="dup-tr">${esc(e.translation)}</div>
+            <div style="font-size:.68rem;color:var(--ink-faint);margin-top:2px;">${LANG_LABELS[e.lang]||e.lang}</div>
+          </div>
+          <div class="dup-btns">
+            <button class="iBtn" onclick="dupEdit('${e.id}')" title="Edytuj">✏️</button>
+            <button class="iBtn" onclick="dupDelete('${e.id}','${esc(e.headword)}')" title="Usuń" style="color:#c0392b;">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function dupEdit(id) {
+  closeToolModal('dupModal');
+  openEdit(id);
+}
+
+function dupDelete(id, hw) {
+  if (!confirm(`Usunąć hasło „${hw}"?`)) return;
+  dbDelete(id).then(() => {
+    allEntries = allEntries.filter(e => e.id !== id);
+    filtered = filtered.filter(e => e.id !== id);
+    updateStats();
+    renderList();
+    findDuplicates(); // refresh list
+    toast('Hasło usunięte');
+  });
+}
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});}
 
