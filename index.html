@@ -793,14 +793,20 @@ function openEdit(id){
   openModal('entryModal');
   setTimeout(()=>document.getElementById('fHw').focus(),120);
 }
-function openDel(id){deleteId=id;const e=allEntries.find(x=>x.id===id);document.getElementById('delWord').textContent=e?`„${e.headword}"`:'';}
+function openDel(id){deleteId=id;const e=allEntries.find(x=>x.id===id);document.getElementById('delWord').textContent=e?`„${e.headword}"`:'';openModal('deleteModal');}
 async function confirmDelete(){
-  await dbDelete(deleteId);
-  allEntries=allEntries.filter(e=>e.id!==deleteId);
-  filtered=filtered.filter(e=>e.id!==deleteId);
-  updateStats();renderList();
-  if(currentQuery)renderPanel();
-  closeModal('deleteModal');toast('Hasło usunięte');
+  try {
+    await dbDelete(deleteId);
+    allEntries=allEntries.filter(e=>e.id!==deleteId);
+    filtered=filtered.filter(e=>e.id!==deleteId);
+    updateStats();renderList();
+    if(currentQuery)renderPanel();
+    closeModal('deleteModal');
+    toast('Hasło usunięte');
+  } catch(err) {
+    console.error('Delete error:', err);
+    toast('⚠ Błąd usuwania: ' + err.message);
+  }
 }
 function clearForm(){['fHw','fTr','fDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('examplesList').innerHTML='';document.getElementById('fieldsList').innerHTML='';}
 function addMeaning(text='',tr=''){
