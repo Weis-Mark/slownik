@@ -302,6 +302,7 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Znajdź duplikaty">🔍 Duplikaty</button>
     <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
     <button class="hbtn hbtn-ghost" onclick="exportData()">Eksport</button>
+    <button class="hbtn hbtn-ghost" onclick="hardRefresh()" title="Odśwież aplikację">🔄</button>
   </div>
 </header>
 
@@ -1101,6 +1102,21 @@ function dupDelete(id, hw) {
     findDuplicates(); // refresh list
     toast('Hasło usunięte');
   });
+}
+
+function hardRefresh(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      regs.forEach(reg=>reg.unregister());
+    });
+  }
+  // Clear caches
+  if('caches' in window){
+    caches.keys().then(keys=>{
+      keys.forEach(key=>caches.delete(key));
+    });
+  }
+  setTimeout(()=>window.location.reload(true), 300);
 }
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});}
