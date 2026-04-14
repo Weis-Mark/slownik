@@ -900,8 +900,8 @@ function addTopExample(text='', tr=''){
   row.className = 'meaning-example-row';
   row.innerHTML = `
     <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-      <textarea placeholder="Przykład użycia…">${esc(text)}</textarea>
-      <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;">${esc(tr)}</textarea>
+      <textarea class="fta" placeholder="Przykład użycia…" style="min-height:52px;">${esc(text)}</textarea>
+      <textarea class="fta" placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;">${esc(tr)}</textarea>
     </div>
     <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>`;
   list.appendChild(row);
