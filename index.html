@@ -277,6 +277,50 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 .dup-tr{font-size:.82rem;color:var(--ink-soft);margin-top:1px;}
 .dup-btns{display:flex;gap:5px;flex-shrink:0;}
 
+/* MEANING BLOCKS */
+.meaning-block{
+  border:1.5px solid var(--line);border-radius:7px;
+  background:var(--bg);overflow:hidden;
+}
+.meaning-block-head{
+  background:var(--highlight);padding:8px 12px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--line);
+}
+.meaning-block-num{
+  font-family:'Libre Baskerville',serif;
+  font-size:.82rem;font-weight:700;color:var(--accent);
+}
+.meaning-block-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.meaning-block textarea{
+  width:100%;font-family:'Source Sans 3',sans-serif;font-size:.88rem;
+  padding:7px 10px;border:1.5px solid var(--line);border-radius:5px;
+  background:var(--paper);color:var(--ink);resize:vertical;min-height:52px;outline:none;
+}
+.meaning-block textarea:focus{border-color:var(--accent);}
+.meaning-examples{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.meaning-example-row{display:flex;gap:6px;align-items:flex-start;}
+.meaning-example-row textarea{flex:1;min-height:44px;}
+.add-example-btn{
+  font-size:.75rem;font-weight:600;color:var(--accent2);
+  background:none;border:1px dashed var(--accent2);
+  border-radius:4px;padding:4px 10px;cursor:pointer;
+  transition:all .15s;align-self:flex-start;
+}
+.add-example-btn:hover{background:#fff3cd;}
+
+/* CARD meaning with examples */
+.meaning-with-ex{margin-bottom:10px;}
+.meaning-ex-list{margin-top:5px;padding-left:10px;}
+.meaning-ex-item{
+  font-size:.84rem;color:var(--ink-soft);
+  padding:4px 8px;margin-bottom:4px;
+  border-left:3px solid var(--highlight);
+  background:rgba(255,243,205,.3);border-radius:0 4px 4px 0;
+  line-height:1.5;
+}
+.meaning-ex-tr{font-style:italic;color:var(--ink-faint);font-size:.8rem;margin-top:2px;}
+
 /* TOAST */
 #toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);}
@@ -387,22 +431,13 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         </div>
       </div>
       <div class="fg">
-        <label class="fl">Tłumaczenie *</label>
+        <label class="fl">Tłumaczenie <span style="font-weight:300;text-transform:none;font-size:.75rem;">(opcjonalne)</span></label>
         <input class="fi" id="fTr" placeholder="np. blamaż, wpadka, plama">
       </div>
       <div class="fg">
-        <label class="fl">Opis / definicja</label>
-        <textarea class="fta" id="fDesc" placeholder="np. (noe som gjør at man blamerer seg)"></textarea>
-      </div>
-      <div class="fg">
-        <div class="sec-lbl">Dodatkowe znaczenia</div>
-        <div class="sub-list" id="meaningsList"></div>
-        <button class="add-sub" onclick="addMeaning()">＋ Dodaj znaczenie</button>
-      </div>
-      <div class="fg">
-        <div class="sec-lbl">Przykłady użycia</div>
-        <div class="sub-list" id="examplesList"></div>
-        <button class="add-sub" onclick="addExample()">＋ Dodaj przykład</button>
+        <div class="sec-lbl">Znaczenia (z przykładami użycia)</div>
+        <div id="meaningsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button class="add-sub" onclick="addMeaning()" style="margin-top:6px;">＋ Dodaj znaczenie</button>
       </div>
       <div class="fg">
         <div class="sec-lbl">Własne rubryki (np. odmiana, rodzaj, uwagi…)</div>
@@ -683,7 +718,14 @@ function openDetail(id){
   if(e.description)html+=`<div class="detail-desc">${esc(e.description)}</div>`;
   if(e.meanings&&e.meanings.length>0){
     html+=`<div class="detail-section-title">Znaczenia</div>`;
-    html+=e.meanings.map((m,i)=>`<div class="detail-meaning"><span class="detail-meaning-n">${i+1}.</span>${esc(m.text)}${m.translation?`<div class="ex-tr">${esc(m.translation)}</div>`:''}</div>`).join('');
+    html+=e.meanings.map((m,i)=>{
+      const mExs = m.examples && m.examples.length > 0
+        ? `<div style="margin-top:6px;padding-left:10px;">${m.examples.map(ex=>
+            `<div class="detail-example">${esc(ex.text)}${ex.translation?`<div class="detail-ex-tr">${esc(ex.translation)}</div>`:''}</div>`
+          ).join('')}</div>`
+        : '';
+      return `<div class="detail-meaning"><span class="detail-meaning-n">${i+1}.</span>${esc(m.text)}${mExs}</div>`;
+    }).join('');
   }
   if(e.examples&&e.examples.length>0){
     html+=`<div class="detail-section-title">Przykłady użycia</div>`;
@@ -732,7 +774,17 @@ function cardHtml(e){
   const hasMeanings=e.meanings&&e.meanings.length>0;
   const hasExamples=e.examples&&e.examples.length>0;
   const hasBody=e.description||hasMeanings||hasExamples;
-  const meaningsHtml=hasMeanings?`<div class="c-meanings">${e.meanings.map((m,i)=>`<div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}${m.translation?`<div class="ex-tr">${hi(m.translation,q)}</div>`:''}</div>`).join('')}</div>`:'';
+  const meaningsHtml = hasMeanings ? `<div class="c-meanings">${
+    e.meanings.map((m,i) => {
+      const mExamples = m.examples && m.examples.length > 0
+        ? `<div class="meaning-ex-list">${m.examples.map(ex =>
+            `<div class="meaning-ex-item">${hi(ex.text,q)}${ex.translation?`<div class="meaning-ex-tr">${hi(ex.translation,q)}</div>`:''}</div>`
+          ).join('')}</div>`
+        : '';
+      return `<div class="meaning-with-ex"><div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}</div>${mExamples}</div>`;
+    }).join('')
+  }</div>` : '';
+  // Top-level examples (legacy support)
   const examplesHtml=hasExamples?`<div class="c-examples">${e.examples.map(ex=>`<div class="example">${hi(ex.text,q)}${ex.translation?`<div class="ex-tr">${hi(ex.translation,q)}</div>`:''}</div>`).join('')}</div>`:'';
   const hasFields=e.fields&&e.fields.length>0;
   const fieldsHtml=hasFields?`<div class="c-fields" style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">${e.fields.map(f=>`<div class="custom-field"><div class="cf-label">${esc(f.label)}</div><div class="cf-value">${esc(f.value)}</div></div>`).join('')}</div>`:'';
@@ -787,7 +839,7 @@ function openEdit(id){
   document.getElementById('fDesc').value=e.description||'';
   document.getElementById('meaningsList').innerHTML='';
   document.getElementById('examplesList').innerHTML='';
-  (e.meanings||[]).forEach(m=>addMeaning(m.text,m.translation||''));
+  (e.meanings||[]).forEach(m=>addMeaning(m.text||'', m.examples||[]));
   (e.examples||[]).forEach(ex=>addExample(ex.text,ex.translation||''));
   document.getElementById('fieldsList').innerHTML='';
   (e.fields||[]).forEach(f=>addCustomField(f.label||'',f.value||''));
@@ -809,12 +861,53 @@ async function confirmDelete(){
     toast('⚠ Błąd usuwania: ' + err.message);
   }
 }
-function clearForm(){['fHw','fTr','fDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('examplesList').innerHTML='';document.getElementById('fieldsList').innerHTML='';}
-function addMeaning(text='',tr=''){
-  const div=document.createElement('div');div.className='sub-item';
-  div.innerHTML=`<div class="sub-item-row"><textarea placeholder="Znaczenie / definicja…">${esc(text)}</textarea><button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button></div>`;
-  document.getElementById('meaningsList').appendChild(div);
+function clearForm(){['fHw','fTr'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('fieldsList').innerHTML='';}
+function addMeaning(text='', examples=[]){
+  const list = document.getElementById('meaningsList');
+  const num = list.querySelectorAll('.meaning-block').length + 1;
+  const div = document.createElement('div');
+  div.className = 'meaning-block';
+  const exHtml = (Array.isArray(examples)?examples:[]).map(ex => `
+    <div class="meaning-example-row">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+        <textarea placeholder="Przykład użycia…">${esc(ex.text||'')}</textarea>
+        <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;">${esc(ex.translation||'')}</textarea>
+      </div>
+      <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>
+    </div>`).join('');
+  div.innerHTML = `
+    <div class="meaning-block-head">
+      <span class="meaning-block-num">Znaczenie ${num}</span>
+      <button class="sub-rm" onclick="this.closest('.meaning-block').remove();renumberMeanings()">✕ Usuń</button>
+    </div>
+    <div class="meaning-block-body">
+      <textarea placeholder="Treść znaczenia / definicja…" style="min-height:60px;">${esc(text)}</textarea>
+      <div class="meaning-examples">${exHtml}</div>
+      <button class="add-example-btn" onclick="addExampleToMeaning(this)">＋ Dodaj przykład do tego znaczenia</button>
+    </div>`;
+  list.appendChild(div);
 }
+
+function renumberMeanings(){
+  document.querySelectorAll('#meaningsList .meaning-block').forEach((block,i)=>{
+    const n=block.querySelector('.meaning-block-num');
+    if(n) n.textContent=`Znaczenie ${i+1}`;
+  });
+}
+
+function addExampleToMeaning(btn){
+  const exList = btn.previousElementSibling;
+  const row = document.createElement('div');
+  row.className = 'meaning-example-row';
+  row.innerHTML = `
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+      <textarea placeholder="Przykład użycia…"></textarea>
+      <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;"></textarea>
+    </div>
+    <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>`;
+  exList.appendChild(row);
+}
+
 function addCustomField(label='',value=''){
   const div=document.createElement('div');div.className='sub-item';
   div.innerHTML=`<div class="sub-item-row" style="gap:6px;align-items:flex-start;">
@@ -824,19 +917,24 @@ function addCustomField(label='',value=''){
   </div>`;
   document.getElementById('fieldsList').appendChild(div);
 }
-function addExample(text='',tr=''){
-  const div=document.createElement('div');div.className='sub-item';
-  div.innerHTML=`<div class="sub-item-row"><textarea placeholder="Przykład użycia…">${esc(text)}</textarea><button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button></div><textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="margin-top:4px;width:100%;">${esc(tr)}</textarea>`;
-  document.getElementById('examplesList').appendChild(div);
-}
+
 async function saveEntry(){
   const hw=document.getElementById('fHw').value.trim();
   const tr=document.getElementById('fTr').value.trim();
-  if(!hw||!tr){toast('⚠ Hasło i tłumaczenie są wymagane');return;}
-  const meanings=Array.from(document.querySelectorAll('#meaningsList .sub-item')).map(item=>({text:item.querySelector('textarea').value.trim(),translation:''})).filter(m=>m.text);
-  const examples=Array.from(document.querySelectorAll('#examplesList .sub-item')).map(item=>{const tas=item.querySelectorAll('textarea');return{text:tas[0]?.value.trim()||'',translation:tas[1]?.value.trim()||''};}).filter(ex=>ex.text);
+  if(!hw){toast('⚠ Hasło jest wymagane');return;}
+  // Read meanings with their examples
+  const meanings = Array.from(document.querySelectorAll('#meaningsList .meaning-block')).map(block => {
+    const tas = block.querySelectorAll(':scope > .meaning-block-body > textarea');
+    const text = tas[0]?.value.trim() || '';
+    const examples = Array.from(block.querySelectorAll('.meaning-example-row')).map(row => {
+      const rowTas = row.querySelectorAll('textarea');
+      return {text: rowTas[0]?.value.trim()||'', translation: rowTas[1]?.value.trim()||''};
+    }).filter(ex => ex.text);
+    return {text, translation:'', examples};
+  }).filter(m => m.text);
+  const examples = []; // examples now stored per meaning
   const fields=Array.from(document.querySelectorAll('#fieldsList .sub-item')).map(item=>{const inp=item.querySelector('input[type=text]');const ta=item.querySelector('textarea');return{label:inp?.value.trim()||'',value:ta?.value.trim()||''};}).filter(f=>f.label||f.value);
-  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:document.getElementById('fDesc').value.trim(),meanings,examples,fields};
+  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:'',meanings,examples,fields};
   await dbPut(entry);
   if(editingId){const idx=allEntries.findIndex(e=>e.id===editingId);if(idx>=0)allEntries[idx]=entry;}
   else{allEntries.push(entry);allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));}
