@@ -836,11 +836,31 @@ function openEdit(id){
   document.getElementById('fHw').value=e.headword||'';
   document.getElementById('fLang').value=e.lang||'no';
   document.getElementById('fTr').value=e.translation||'';
-  document.getElementById('fDesc').value=e.description||'';
   document.getElementById('meaningsList').innerHTML='';
-  document.getElementById('examplesList').innerHTML='';
+  // Load meanings with their examples
   (e.meanings||[]).forEach(m=>addMeaning(m.text||'', m.examples||[]));
-  (e.examples||[]).forEach(ex=>addExample(ex.text,ex.translation||''));
+  // Load top-level examples as extra meaning if they exist (legacy support)
+  if((e.examples||[]).length > 0 && (e.meanings||[]).length === 0){
+    // Create one meaning block with these examples
+    addMeaning('', e.examples||[]);
+  } else if((e.examples||[]).length > 0){
+    // Add examples to last meaning block
+    const lastBlock = document.querySelector('#meaningsList .meaning-block:last-child');
+    if(lastBlock){
+      const exList = lastBlock.querySelector('.meaning-examples');
+      (e.examples||[]).forEach(ex=>{
+        const row = document.createElement('div');
+        row.className = 'meaning-example-row';
+        row.innerHTML = `
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+            <textarea placeholder="Przykład użycia…">${esc(ex.text||'')}</textarea>
+            <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;">${esc(ex.translation||'')}</textarea>
+          </div>
+          <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>`;
+        exList.appendChild(row);
+      });
+    }
+  }
   document.getElementById('fieldsList').innerHTML='';
   (e.fields||[]).forEach(f=>addCustomField(f.label||'',f.value||''));
   openModal('entryModal');
