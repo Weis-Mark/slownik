@@ -591,16 +591,29 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     </div>
     <div class="m-body">
       <p style="font-size:.88rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.6;">
-        Wyszukaj hasła do scalenia, zaznacz je klikając, a następnie kliknij <strong>Scal zaznaczone</strong>. 
-        Pierwsze zaznaczone hasło będzie hasłem głównym — pozostałe zostaną do niego dołączone.
+        Wpisz nazwę nowego hasła, wyszukaj i zaznacz hasła do scalenia, potem kliknij <strong>Scal zaznaczone</strong>.
       </p>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <input class="fi" id="mergeSearch" placeholder="Szukaj hasła do scalenia…" 
+      <div class="fg" style="margin-bottom:10px;">
+        <label class="fl">Nowe hasło główne *</label>
+        <div style="display:flex;gap:8px;">
+          <input class="fi" id="mergeNewHw" placeholder="np. przegub" autocomplete="off" style="flex:1;">
+          <select class="fsel" id="mergeNewLang" style="flex:0 0 130px;">
+            <option value="no">🇳🇴 Norweski</option>
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="en">🇬🇧 Angielski</option>
+            <option value="de">🇩🇪 Niemiecki</option>
+            <option value="la">🏛 Łacina</option>
+            <option value="ru">🇷🇺 Rosyjski</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="fi" id="mergeSearch" placeholder="Szukaj haseł do scalenia…" 
           oninput="renderMergeList(this.value)" style="flex:1;">
-        <button class="btn btn-muted" onclick="clearMergeSelection()">Odznacz wszystkie</button>
+        <button class="btn btn-muted" onclick="clearMergeSelection()">Odznacz</button>
       </div>
       <div style="font-size:.8rem;color:var(--accent);font-weight:600;margin-bottom:6px;" id="mergeSelCount">Zaznaczono: 0</div>
-      <div id="mergeList" style="max-height:380px;overflow-y:auto;"></div>
+      <div id="mergeList" style="max-height:320px;overflow-y:auto;"></div>
     </div>
     <div class="m-foot">
       <button class="btn btn-muted" onclick="closeToolModal('mergeModal')">Anuluj</button>
@@ -1153,11 +1166,16 @@ let mergeSelected = new Set();
 
 function openMergeMode() {
   mergeSelected.clear();
-  document.getElementById('mergeSearch').value = '';
+  // Pre-fill search and new headword from current search query
+  const currentQ = document.getElementById('searchInput').value.trim();
+  document.getElementById('mergeSearch').value = currentQ;
+  document.getElementById('mergeNewHw').value = currentQ;
+  document.getElementById('mergeNewLang').value = 'pl'; // default Polish for merged entries
   document.getElementById('mergeSelCount').textContent = 'Zaznaczono: 0';
-  renderMergeList('');
+  renderMergeList(currentQ);
   document.getElementById('mergeModal').classList.add('open');
   document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('mergeNewHw').focus(), 150);
 }
 
 function closeToolModal(id) {
@@ -1170,9 +1188,15 @@ function renderMergeList(q) {
   const qlow = q.trim().toLowerCase();
   // Show ALL matching or first 200 if no query
   const items = qlow
-    ? allEntries.filter(e => 
-        e.headword.toLowerCase().includes(qlow) || 
-        e.translation.toLowerCase().includes(qlow))
+    ? allEntries.filter(e => {
+        // Search everywhere - same as main search
+        const fields = [
+          e.headword, e.translation, e.description,
+          ...(e.meanings||[]).map(m => m.text + ' ' + (m.translation||'')),
+          ...(e.examples||[]).map(ex => ex.text + ' ' + (ex.translation||''))
+        ];
+        return fields.some(f => f && f.toLowerCase().includes(qlow));
+      })
     : allEntries.slice(0, 200);
   
   if (items.length === 0) {
@@ -1216,58 +1240,71 @@ let mergeUndoBuffer = null;
 async function doMerge() {
   if (mergeSelected.size < 2) { toast('⚠ Zaznacz co najmniej 2 hasła do scalenia'); return; }
   
+  const newHw = document.getElementById('mergeNewHw').value.trim();
+  if (!newHw) { toast('⚠ Wpisz nazwę nowego hasła głównego'); document.getElementById('mergeNewHw').focus(); return; }
+  const newLang = document.getElementById('mergeNewLang').value;
+  
   const ids = Array.from(mergeSelected);
   const entries = ids.map(id => allEntries.find(e => e.id === id)).filter(Boolean);
   if (entries.length < 2) return;
   
-  // Save undo buffer - deep copy of all entries being merged
+  // Save undo buffer
   mergeUndoBuffer = entries.map(e => JSON.parse(JSON.stringify(e)));
   
-  // First selected = main entry
-  const main = JSON.parse(JSON.stringify(entries[0]));
-  const rest = entries.slice(1);
+  // Create brand new entry with user-defined headword
+  const newEntry = {
+    id: genId(),
+    lang: newLang,
+    headword: newHw,
+    translation: '',
+    description: '',
+    meanings: [],
+    examples: [],
+    fields: []
+  };
   
-  // Merge rest entries as NEW meanings (with their headword as label)
-  rest.forEach(e => {
-    // Add headword of merged entry as a new meaning
-    const mergedMeaning = {
-      text: e.headword + (e.translation ? ' — ' + e.translation : ''),
+  // Add each selected entry as a meaning block
+  entries.forEach(e => {
+    // Main meaning: headword — translation
+    const meaningText = e.headword + (e.translation ? ' — ' + e.translation : '');
+    const meaning = {
+      text: meaningText,
       translation: '',
       examples: [...(e.examples||[])]
     };
-    // Add existing meanings of merged entry
-    const existingMeanings = (e.meanings||[]).map(m => ({...m}));
-    main.meanings = [
-      ...(main.meanings||[]),
-      mergedMeaning,
-      ...existingMeanings
-    ];
-    // Merge top-level examples
-    main.examples = [...(main.examples||[]), ...(e.examples||[])];
-    // Merge custom fields
-    main.fields = [...(main.fields||[]), ...(e.fields||[])];
+    newEntry.meanings.push(meaning);
+    
+    // Add sub-meanings of this entry as additional meanings
+    (e.meanings||[]).forEach(m => {
+      newEntry.meanings.push({
+        text: '  ' + m.text,
+        translation: m.translation||'',
+        examples: m.examples||[]
+      });
+    });
+    
+    // Merge fields
+    newEntry.fields = [...newEntry.fields, ...(e.fields||[])];
   });
   
-  // Save main
-  await dbPut(main);
+  // Save new entry
+  await dbPut(newEntry);
   
-  // Delete rest
-  for (const e of rest) {
+  // Delete all original entries
+  for (const e of entries) {
     await dbDelete(e.id);
   }
   
   // Update cache
-  allEntries = allEntries.filter(e => !ids.slice(1).includes(e.id));
-  const idx = allEntries.findIndex(e => e.id === main.id);
-  if (idx >= 0) allEntries[idx] = main;
+  allEntries = allEntries.filter(e => !ids.includes(e.id));
+  allEntries.push(newEntry);
   allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
   
   mergeSelected.clear();
-  onSearch(document.getElementById('searchInput').value);
+  onSearch(newHw); // search for new entry
+  document.getElementById('searchInput').value = newHw;
   closeToolModal('mergeModal');
-  toast(`✓ Scalono ${entries.length} haseł. Kliknij "Cofnij" żeby anulować.`, 8000);
-  
-  // Show undo button in toast area
+  toast(`✓ Scalono ${entries.length} haseł → "${newHw}". Kliknij ↩ żeby cofnąć.`, 10000);
   showUndoBtn();
 }
 
@@ -1289,11 +1326,8 @@ function showUndoBtn() {
     document.body.appendChild(undoBtn);
   }
   undoBtn.style.display = 'block';
+  // No timeout - stays until next merge or manual undo
   clearTimeout(undoBtn._timer);
-  undoBtn._timer = setTimeout(() => {
-    undoBtn.style.display = 'none';
-    mergeUndoBuffer = null;
-  }, 15000);
 }
 
 async function undoMerge() {
