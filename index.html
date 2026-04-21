@@ -73,7 +73,7 @@ header{
 
 /* STATS */
 .stats-bar{
-  position:fixed;top:calc(var(--header-h) + var(--search-h) + 38px + env(safe-area-inset-top));
+  position:fixed;top:calc(var(--header-h) + var(--search-h) + env(safe-area-inset-top));
   left:0;right:0;z-index:96;
   background:var(--paper);border-bottom:1px solid var(--line);
   padding:5px 16px;font-size:.78rem;color:var(--ink-faint);
@@ -362,6 +362,23 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 }
 .filter-btn:hover:not(.active){background:var(--highlight);}
 
+/* LANG DROPDOWN */
+.lang-dropdown{
+  display:none;position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--ink);color:var(--bg);
+  border-radius:8px;padding:6px;min-width:150px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:300;
+}
+.lang-dropdown.open{display:block;}
+.lang-dropdown button{
+  display:flex;align-items:center;gap:8px;width:100%;
+  background:none;border:none;color:var(--bg);
+  padding:6px 10px;border-radius:5px;cursor:pointer;
+  font-size:.82rem;font-family:'Source Sans 3',sans-serif;
+  text-align:left;transition:background .12s;
+}
+.lang-dropdown button:hover{background:rgba(255,255,255,.12);}
+
 /* TOAST */
 #toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);}
@@ -383,11 +400,24 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     <span>Słownik Norwesko-Polski</span>
   </div>
   <div class="h-btns">
-    <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓ Scal</button>
-    <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Znajdź duplikaty">🔍 Duplikaty</button>
+    <button class="hbtn hbtn-ghost" id="searchModeBtn" onclick="cycleSearchMode()" title="Tryb wyszukiwania">🔍 Wszędzie</button>
+    <div style="position:relative;">
+      <button class="hbtn hbtn-ghost" onclick="toggleLangMenu()" title="Filtr języka" id="langMenuBtn">🌐▾</button>
+      <div class="lang-dropdown" id="langDropdown">
+        <button onclick="toggleLangFilter('no')"><span id="lf-no">○</span> 🇳🇴 Norweski</button>
+        <button onclick="toggleLangFilter('pl')"><span id="lf-pl">○</span> 🇵🇱 Polski</button>
+        <button onclick="toggleLangFilter('ru')"><span id="lf-ru">○</span> 🇷🇺 Rosyjski</button>
+        <button onclick="toggleLangFilter('en')"><span id="lf-en">○</span> 🇬🇧 Angielski</button>
+        <button onclick="toggleLangFilter('la')"><span id="lf-la">○</span> 🏛 Łacina</button>
+        <button onclick="toggleLangFilter('de')"><span id="lf-de">○</span> 🇩🇪 Niemiecki</button>
+        <button onclick="clearLangFilter()" style="border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:8px;opacity:.7;">✕ Wyczyść</button>
+      </div>
+    </div>
+    <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓</button>
+    <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Duplikaty">Dup.</button>
     <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
     <button class="hbtn hbtn-ghost" onclick="exportData()">Eksport</button>
-    <button class="hbtn hbtn-ghost" onclick="hardRefresh()" title="Odśwież aplikację">🔄</button>
+    <button class="hbtn hbtn-ghost" onclick="hardRefresh()" title="Odśwież">🔄</button>
   </div>
 </header>
 
@@ -398,20 +428,6 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     autocomplete="off" spellcheck="false">
   <button class="search-btn" onclick="doSearch()" title="Szukaj">🔍</button>
   <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
-</div>
-
-<div class="search-filters">
-  <span style="font-size:.72rem;color:var(--ink-faint);font-weight:600;margin-right:2px;">Szukaj:</span>
-  <button class="filter-btn active" id="flt-all" onclick="setSearchMode('all')">Wszędzie</button>
-  <button class="filter-btn" id="flt-exact" onclick="setSearchMode('exact')">Dokładne hasło</button>
-  <button class="filter-btn" id="flt-start" onclick="setSearchMode('start')">Zaczyna się od</button>
-  <span style="width:1px;background:var(--line);height:16px;margin:0 4px;"></span>
-  <button class="filter-btn" id="flt-no" onclick="toggleLangFilter('no')">🇳🇴</button>
-  <button class="filter-btn" id="flt-pl" onclick="toggleLangFilter('pl')">🇵🇱</button>
-  <button class="filter-btn" id="flt-ru" onclick="toggleLangFilter('ru')">🇷🇺</button>
-  <button class="filter-btn" id="flt-en" onclick="toggleLangFilter('en')">🇬🇧</button>
-  <button class="filter-btn" id="flt-la" onclick="toggleLangFilter('la')">🏛</button>
-  <button class="filter-btn" id="flt-de" onclick="toggleLangFilter('de')">🇩🇪</button>
 </div>
 
 <div class="stats-bar">
@@ -728,9 +744,11 @@ function clearSearch(){
   document.getElementById('searchInput').value='';
   activeLangs.clear();
   ['no','pl','ru','en','la','de'].forEach(l=>{
-    const btn=document.getElementById('flt-'+l);
-    if(btn)btn.classList.remove('active');
+    const el=document.getElementById('lf-'+l);
+    if(el)el.textContent='○';
   });
+  const btn = document.getElementById('langMenuBtn');
+  if (btn) btn.textContent = '🌐▾';
   onSearch('');
 }
 
@@ -739,9 +757,14 @@ function matchEntry(e, q){
   const hw = (e.headword||'').toLowerCase();
   
   if (searchMode === 'exact') {
-    // Dokładne dopasowanie hasła głównego
-    return hw === q || hw.startsWith(q + ' ') || hw.startsWith(q + '-') || 
-           hw.startsWith(q + '/') || hw.endsWith(' ' + q) || hw.endsWith('-' + q);
+    // Dokładne dopasowanie - normalizuj hasło (usuń myślniki, ukośniki na końcu)
+    const hwNorm = hw.replace(/[-–—/\s]+$/, '').trim();
+    const qNorm = q.replace(/[-–—/\s]+$/, '').trim();
+    return hwNorm === qNorm || 
+           hw === q ||
+           hwNorm.startsWith(qNorm + ' ') || 
+           hwNorm.startsWith(qNorm + '-') ||
+           hwNorm.startsWith(qNorm + '/');
   } else if (searchMode === 'start') {
     // Hasło zaczyna się od szukanej frazy
     return hw.startsWith(q);
@@ -786,14 +809,14 @@ function renderPanel(){
     list.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:.88rem;">Brak wyników</div>';
     return;
   }
-  list.innerHTML=filtered.slice(0,200).map(e=>`
+  list.innerHTML=filtered.slice(0,500).map(e=>`
     <div class="panel-item ${detailId===e.id?'active':''}" onclick="openDetail('${e.id}')">
       <div class="pi-hw">${hi(e.headword,currentQuery)}</div>
       <div class="pi-tr">${hi(e.translation,currentQuery)}</div>
       <div class="pi-lang">${LANG_LABELS[e.lang]||e.lang}</div>
     </div>`).join('');
-  if(filtered.length>200){
-    list.innerHTML+=`<div style="padding:10px 14px;font-size:.78rem;color:var(--ink-faint);text-align:center;">Pokazano 200 z ${filtered.length} wyników. Zawęź wyszukiwanie.</div>`;
+  if(filtered.length>500){
+    list.innerHTML+=`<div style="padding:10px 14px;font-size:.78rem;color:var(--ink-faint);text-align:center;">Pokazano 500 z ${filtered.length} wyników. Zawęź wyszukiwanie.</div>`;
   }
 }
 
@@ -1107,7 +1130,13 @@ async function doImport(){
 // TOAST & KEYBOARD
 // ═══════════════════════════════════════════════════════════
 let toastTimer;
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);}
+function toast(msg, duration=4000){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), duration);
+}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(document.getElementById('detailModal').classList.contains('open')){closeDetailModal();return;}
@@ -1383,27 +1412,67 @@ function cancelHoldDelete() {
 let searchMode = 'all';      // 'all', 'exact', 'start'
 let activeLangs = new Set(); // empty = all languages
 
-function setSearchMode(mode) {
-  searchMode = mode;
-  ['all','exact','start'].forEach(m => {
-    const btn = document.getElementById('flt-' + m);
-    if (btn) btn.classList.toggle('active', m === mode);
-  });
+function cycleSearchMode() {
+  const modes = ['all','exact','start'];
+  const labels = {'all':'🔍 Wszędzie','exact':'🎯 Dokładne','start':'▶ Zaczyna się'};
+  const idx = modes.indexOf(searchMode);
+  searchMode = modes[(idx+1) % modes.length];
+  const btn = document.getElementById('searchModeBtn');
+  if (btn) btn.textContent = labels[searchMode];
   if (currentQuery) doSearch();
 }
 
+function setSearchMode(mode) {
+  searchMode = mode;
+  const labels = {'all':'🔍 Wszędzie','exact':'🎯 Dokładne','start':'▶ Zaczyna się'};
+  const btn = document.getElementById('searchModeBtn');
+  if (btn) btn.textContent = labels[mode];
+  if (currentQuery) doSearch();
+}
+
+let langMenuOpen = false;
+function toggleLangMenu() {
+  langMenuOpen = !langMenuOpen;
+  const dd = document.getElementById('langDropdown');
+  if (dd) dd.classList.toggle('open', langMenuOpen);
+}
+
+// Close lang menu when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('[onclick="toggleLangMenu()"]') && 
+      !e.target.closest('#langDropdown')) {
+    langMenuOpen = false;
+    const dd = document.getElementById('langDropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
 function toggleLangFilter(lang) {
-  const btn = document.getElementById('flt-' + lang);
   if (activeLangs.has(lang)) {
     activeLangs.delete(lang);
-    if (btn) btn.classList.remove('active');
+    const el = document.getElementById('lf-' + lang);
+    if (el) el.textContent = '○';
   } else {
     activeLangs.add(lang);
-    if (btn) btn.classList.add('active');
+    const el = document.getElementById('lf-' + lang);
+    if (el) el.textContent = '●';
   }
-  if (currentQuery || activeLangs.size > 0) {
-    onSearch(document.getElementById('searchInput').value);
-  }
+  // Update lang menu button to show active count
+  const btn = document.getElementById('langMenuBtn');
+  if (btn) btn.textContent = activeLangs.size > 0 ? `🌐(${activeLangs.size})▾` : '🌐▾';
+  onSearch(document.getElementById('searchInput').value);
+}
+
+function clearLangFilter() {
+  activeLangs.clear();
+  ['no','pl','ru','en','la','de'].forEach(l => {
+    const el = document.getElementById('lf-' + l);
+    if (el) el.textContent = '○';
+  });
+  const btn = document.getElementById('langMenuBtn');
+  if (btn) btn.textContent = '🌐▾';
+  onSearch(document.getElementById('searchInput').value);
+  toggleLangMenu();
 }
 
 function hardRefresh(){
