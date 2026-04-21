@@ -73,8 +73,8 @@ header{
 
 /* STATS */
 .stats-bar{
-  position:fixed;top:calc(var(--header-h) + var(--search-h) + env(safe-area-inset-top));
-  left:0;right:0;z-index:98;
+  position:fixed;top:calc(var(--header-h) + var(--search-h) + 38px + env(safe-area-inset-top));
+  left:0;right:0;z-index:96;
   background:var(--paper);border-bottom:1px solid var(--line);
   padding:5px 16px;font-size:.78rem;color:var(--ink-faint);
   display:flex;justify-content:space-between;align-items:center;
@@ -321,6 +321,47 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 }
 .meaning-ex-tr{font-style:italic;color:var(--ink-faint);font-size:.8rem;margin-top:2px;}
 
+/* HOLD TO DELETE */
+.iBtn-danger{
+  background:none;border:1px solid var(--line);border-radius:4px;
+  padding:4px 8px;cursor:pointer;font-size:.82rem;color:var(--ink-soft);
+  transition:all .15s;position:relative;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+}
+.iBtn-danger:hover{background:#fde8e8;border-color:#c0392b;color:#c0392b;}
+.iBtn-danger .hold-progress{
+  position:absolute;bottom:0;left:0;height:3px;
+  background:#c0392b;width:0%;transition:none;
+  border-radius:0 0 4px 4px;
+}
+.iBtn-danger.holding .hold-progress{
+  width:100%;transition:width 1s linear;
+}
+
+/* SEARCH FILTERS */
+.search-filters{
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  padding:6px 14px 8px;
+  background:var(--paper);
+  border-bottom:1px solid var(--line);
+  position:fixed;
+  top:calc(var(--header-h) + var(--search-h) + env(safe-area-inset-top));
+  left:0;right:0;z-index:97;
+}
+.filter-btn{
+  font-size:.72rem;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+  border:1.5px solid var(--line);
+  background:var(--bg);color:var(--ink-soft);
+  cursor:pointer;transition:all .15s;
+  white-space:nowrap;
+}
+.filter-btn.active{
+  background:var(--accent);color:#fff;
+  border-color:var(--accent);
+}
+.filter-btn:hover:not(.active){background:var(--highlight);}
+
 /* TOAST */
 #toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);}
@@ -357,6 +398,20 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
     autocomplete="off" spellcheck="false">
   <button class="search-btn" onclick="doSearch()" title="Szukaj">🔍</button>
   <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+</div>
+
+<div class="search-filters">
+  <span style="font-size:.72rem;color:var(--ink-faint);font-weight:600;margin-right:2px;">Szukaj:</span>
+  <button class="filter-btn active" id="flt-all" onclick="setSearchMode('all')">Wszędzie</button>
+  <button class="filter-btn" id="flt-exact" onclick="setSearchMode('exact')">Dokładne hasło</button>
+  <button class="filter-btn" id="flt-start" onclick="setSearchMode('start')">Zaczyna się od</button>
+  <span style="width:1px;background:var(--line);height:16px;margin:0 4px;"></span>
+  <button class="filter-btn" id="flt-no" onclick="toggleLangFilter('no')">🇳🇴</button>
+  <button class="filter-btn" id="flt-pl" onclick="toggleLangFilter('pl')">🇵🇱</button>
+  <button class="filter-btn" id="flt-ru" onclick="toggleLangFilter('ru')">🇷🇺</button>
+  <button class="filter-btn" id="flt-en" onclick="toggleLangFilter('en')">🇬🇧</button>
+  <button class="filter-btn" id="flt-la" onclick="toggleLangFilter('la')">🏛</button>
+  <button class="filter-btn" id="flt-de" onclick="toggleLangFilter('de')">🇩🇪</button>
 </div>
 
 <div class="stats-bar">
@@ -649,15 +704,54 @@ function onSearch(q){
   currentQuery=q.trim().toLowerCase();
   document.getElementById('searchClear').classList.toggle('vis',q.length>0);
   renderCount=50;
-  filtered=currentQuery?allEntries.filter(e=>matchEntry(e,currentQuery)):allEntries;
+  
+  let results = allEntries;
+  
+  // Apply language filter
+  if (activeLangs.size > 0) {
+    results = results.filter(e => activeLangs.has(e.lang));
+  }
+  
+  // Apply text search
+  if (currentQuery) {
+    results = results.filter(e => matchEntry(e, currentQuery));
+  }
+  
+  filtered = results;
   updateStats();
   renderList();
-  if(currentQuery&&filtered.length>0)openPanel();
-  else closePanel();
+  if((currentQuery||activeLangs.size>0)&&filtered.length>0)openPanel();
+  else if(!currentQuery&&activeLangs.size===0)closePanel();
 }
-function clearSearch(){document.getElementById('searchInput').value='';onSearch('');}
-function matchEntry(e,q){
-  return[e.headword,e.translation,e.description,...(e.meanings||[]).map(m=>m.text),...(e.examples||[]).map(ex=>ex.text+' '+(ex.translation||''))].some(f=>f&&f.toLowerCase().includes(q));
+
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  activeLangs.clear();
+  ['no','pl','ru','en','la','de'].forEach(l=>{
+    const btn=document.getElementById('flt-'+l);
+    if(btn)btn.classList.remove('active');
+  });
+  onSearch('');
+}
+
+function matchEntry(e, q){
+  if (!q) return true;
+  const hw = (e.headword||'').toLowerCase();
+  
+  if (searchMode === 'exact') {
+    // Dokładne dopasowanie hasła głównego
+    return hw === q || hw.startsWith(q + ' ') || hw.startsWith(q + '-') || 
+           hw.startsWith(q + '/') || hw.endsWith(' ' + q) || hw.endsWith('-' + q);
+  } else if (searchMode === 'start') {
+    // Hasło zaczyna się od szukanej frazy
+    return hw.startsWith(q);
+  } else {
+    // Wszędzie - standardowe wyszukiwanie
+    return [e.headword,e.translation,e.description,
+            ...(e.meanings||[]).map(m=>m.text),
+            ...(e.examples||[]).map(ex=>ex.text+' '+(ex.translation||''))
+           ].some(f=>f&&f.toLowerCase().includes(q));
+  }
 }
 function updateStats(){
   document.getElementById('statsTotal').textContent=`Łącznie: ${allEntries.length} haseł`;
@@ -805,7 +899,12 @@ function cardHtml(e){
         <div class="card-actions" onclick="event.stopPropagation()">
           <button class="iBtn" onclick="openDetail('${e.id}')" title="Szczegóły">👁</button>
           <button class="iBtn" onclick="openEdit('${e.id}')" title="Edytuj">✏️</button>
-          <button class="iBtn" onclick="openDel('${e.id}')" title="Usuń">🗑</button>
+          <button class="iBtn-danger" title="Przytrzymaj 1s żeby usunąć" 
+            onmousedown="startHoldDelete('${e.id}',this)" 
+            onmouseup="cancelHoldDelete()" 
+            onmouseleave="cancelHoldDelete()"
+            ontouchstart="startHoldDelete('${e.id}',this)" 
+            ontouchend="cancelHoldDelete()">🗑<span class="hold-progress"></span></button>
         </div>
       </div>
     </div>
@@ -1202,7 +1301,12 @@ function findDuplicates() {
           </div>
           <div class="dup-btns">
             <button class="iBtn" onclick="dupEdit('${e.id}')" title="Edytuj">✏️</button>
-            <button class="iBtn" onclick="dupDelete('${e.id}','${esc(e.headword)}')" title="Usuń" style="color:#c0392b;">🗑</button>
+            <button class="iBtn-danger" title="Przytrzymaj 1s żeby usunąć"
+            onmousedown="startHoldDelete('${e.id}',this,'${esc(e.headword)}')"
+            onmouseup="cancelHoldDelete()"
+            onmouseleave="cancelHoldDelete()"
+            ontouchstart="startHoldDelete('${e.id}',this,'${esc(e.headword)}')"
+            ontouchend="cancelHoldDelete()">🗑<span class="hold-progress"></span></button>
           </div>
         </div>`).join('')}
     </div>`).join('');
@@ -1223,6 +1327,83 @@ function dupDelete(id, hw) {
     findDuplicates(); // refresh list
     toast('Hasło usunięte');
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOLD TO DELETE
+// ═══════════════════════════════════════════════════════════
+let holdTimer = null;
+let holdId = null;
+
+function startHoldDelete(id, btn, hwOverride) {
+  holdId = id;
+  btn.classList.add('holding');
+  const prog = btn.querySelector('.hold-progress');
+  if (prog) prog.style.width = '100%';
+  
+  holdTimer = setTimeout(() => {
+    btn.classList.remove('holding');
+    if (prog) prog.style.width = '0%';
+    if (hwOverride) {
+      // From duplicates panel
+      if (confirm(`Usunąć hasło „${hwOverride}"?`)) {
+        dbDelete(id).then(() => {
+          allEntries = allEntries.filter(e => e.id !== id);
+          filtered = filtered.filter(e => e.id !== id);
+          updateStats(); renderList();
+          if (currentQuery) renderPanel();
+          findDuplicates();
+          toast('Hasło usunięte');
+        });
+      }
+    } else {
+      openDel(id);
+    }
+    holdId = null;
+  }, 1000);
+}
+
+function cancelHoldDelete() {
+  if (holdTimer) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+  }
+  // Reset all holding buttons
+  document.querySelectorAll('.iBtn-danger.holding').forEach(btn => {
+    btn.classList.remove('holding');
+    const prog = btn.querySelector('.hold-progress');
+    if (prog) prog.style.width = '0%';
+  });
+  holdId = null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH FILTERS
+// ═══════════════════════════════════════════════════════════
+let searchMode = 'all';      // 'all', 'exact', 'start'
+let activeLangs = new Set(); // empty = all languages
+
+function setSearchMode(mode) {
+  searchMode = mode;
+  ['all','exact','start'].forEach(m => {
+    const btn = document.getElementById('flt-' + m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  if (currentQuery) doSearch();
+}
+
+function toggleLangFilter(lang) {
+  const btn = document.getElementById('flt-' + lang);
+  if (activeLangs.has(lang)) {
+    activeLangs.delete(lang);
+    if (btn) btn.classList.remove('active');
+  } else {
+    activeLangs.add(lang);
+    if (btn) btn.classList.add('active');
+  }
+  if (currentQuery || activeLangs.size > 0) {
+    onSearch(document.getElementById('searchInput').value);
+  }
 }
 
 function hardRefresh(){
