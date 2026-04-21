@@ -1168,29 +1168,32 @@ function closeToolModal(id) {
 function renderMergeList(q) {
   const list = document.getElementById('mergeList');
   const qlow = q.trim().toLowerCase();
+  // Show ALL matching or first 200 if no query
   const items = qlow
-    ? allEntries.filter(e => e.headword.toLowerCase().includes(qlow) || e.translation.toLowerCase().includes(qlow))
-    : allEntries.slice(0, 100);
+    ? allEntries.filter(e => 
+        e.headword.toLowerCase().includes(qlow) || 
+        e.translation.toLowerCase().includes(qlow))
+    : allEntries.slice(0, 200);
   
   if (items.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:.88rem;">Brak wyników</div>';
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:.88rem;">Brak wyników — wpisz inne słowo</div>';
     return;
   }
   
   list.innerHTML = items.map(e => `
     <div class="merge-card ${mergeSelected.has(e.id)?'selected':''}" onclick="toggleMergeSelect('${e.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
+        <div style="flex:1;min-width:0;">
           <div class="mc-hw">${esc(e.headword)}</div>
-          <div class="mc-tr">${esc(e.translation)}</div>
+          <div class="mc-tr">${esc(e.translation).slice(0,60)}${e.translation.length>60?'…':''}</div>
           <div class="mc-lang">${LANG_LABELS[e.lang]||e.lang}</div>
         </div>
-        <div style="font-size:1.2rem;">${mergeSelected.has(e.id)?'✅':''}</div>
+        <div style="font-size:1.2rem;flex-shrink:0;">${mergeSelected.has(e.id)?'✅':''}</div>
       </div>
     </div>`).join('');
   
-  if (!qlow && allEntries.length > 100) {
-    list.innerHTML += `<div style="padding:10px;text-align:center;font-size:.78rem;color:var(--ink-faint);">Wpisz szukaną frazę żeby znaleźć więcej haseł</div>`;
+  if (!qlow && allEntries.length > 200) {
+    list.innerHTML += `<div style="padding:10px;text-align:center;font-size:.78rem;color:var(--ink-faint);">Pokazano 200 z ${allEntries.length}. Wpisz frazę żeby zawęzić.</div>`;
   }
 }
 
@@ -1207,6 +1210,9 @@ function clearMergeSelection() {
   renderMergeList(document.getElementById('mergeSearch').value);
 }
 
+// Undo buffer for merge
+let mergeUndoBuffer = null;
+
 async function doMerge() {
   if (mergeSelected.size < 2) { toast('⚠ Zaznacz co najmniej 2 hasła do scalenia'); return; }
   
@@ -1214,23 +1220,29 @@ async function doMerge() {
   const entries = ids.map(id => allEntries.find(e => e.id === id)).filter(Boolean);
   if (entries.length < 2) return;
   
+  // Save undo buffer - deep copy of all entries being merged
+  mergeUndoBuffer = entries.map(e => JSON.parse(JSON.stringify(e)));
+  
   // First selected = main entry
-  const main = {...entries[0]};
+  const main = JSON.parse(JSON.stringify(entries[0]));
   const rest = entries.slice(1);
   
-  // Merge: combine meanings, examples, fields, append translations
+  // Merge rest entries as NEW meanings (with their headword as label)
   rest.forEach(e => {
-    // Append translation if different
-    if (e.translation && !main.translation.includes(e.translation)) {
-      main.translation += (main.translation ? ', ' : '') + e.translation;
-    }
-    // Append description
-    if (e.description && !main.description.includes(e.description)) {
-      main.description += (main.description ? '; ' : '') + e.description;
-    }
-    // Merge meanings
-    main.meanings = [...(main.meanings||[]), ...(e.meanings||[])];
-    // Merge examples
+    // Add headword of merged entry as a new meaning
+    const mergedMeaning = {
+      text: e.headword + (e.translation ? ' — ' + e.translation : ''),
+      translation: '',
+      examples: [...(e.examples||[])]
+    };
+    // Add existing meanings of merged entry
+    const existingMeanings = (e.meanings||[]).map(m => ({...m}));
+    main.meanings = [
+      ...(main.meanings||[]),
+      mergedMeaning,
+      ...existingMeanings
+    ];
+    // Merge top-level examples
     main.examples = [...(main.examples||[]), ...(e.examples||[])];
     // Merge custom fields
     main.fields = [...(main.fields||[]), ...(e.fields||[])];
@@ -1253,7 +1265,57 @@ async function doMerge() {
   mergeSelected.clear();
   onSearch(document.getElementById('searchInput').value);
   closeToolModal('mergeModal');
-  toast(`✓ Scalono ${entries.length} haseł w jedno`);
+  toast(`✓ Scalono ${entries.length} haseł. Kliknij "Cofnij" żeby anulować.`, 8000);
+  
+  // Show undo button in toast area
+  showUndoBtn();
+}
+
+function showUndoBtn() {
+  let undoBtn = document.getElementById('undoBtn');
+  if (!undoBtn) {
+    undoBtn = document.createElement('button');
+    undoBtn.id = 'undoBtn';
+    undoBtn.textContent = '↩ Cofnij scalenie';
+    undoBtn.style.cssText = `
+      position:fixed;bottom:calc(120px + env(safe-area-inset-bottom));
+      left:50%;transform:translateX(-50%);
+      background:var(--accent);color:#fff;border:none;border-radius:6px;
+      padding:10px 20px;cursor:pointer;font-weight:600;font-size:.88rem;
+      box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:999;
+      font-family:'Source Sans 3',sans-serif;
+    `;
+    undoBtn.onclick = undoMerge;
+    document.body.appendChild(undoBtn);
+  }
+  undoBtn.style.display = 'block';
+  clearTimeout(undoBtn._timer);
+  undoBtn._timer = setTimeout(() => {
+    undoBtn.style.display = 'none';
+    mergeUndoBuffer = null;
+  }, 15000);
+}
+
+async function undoMerge() {
+  if (!mergeUndoBuffer || mergeUndoBuffer.length < 2) {
+    toast('⚠ Brak danych do cofnięcia'); return;
+  }
+  
+  // Restore all original entries
+  for (const e of mergeUndoBuffer) {
+    await dbPut(e);
+  }
+  
+  // Reload cache
+  allEntries = await dbGetAll();
+  allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+  
+  mergeUndoBuffer = null;
+  const btn = document.getElementById('undoBtn');
+  if (btn) btn.style.display = 'none';
+  
+  onSearch(document.getElementById('searchInput').value);
+  toast('✓ Scalenie cofnięte — przywrócono oryginalne hasła');
 }
 
 // ═══════════════════════════════════════════════════════════
