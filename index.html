@@ -382,14 +382,15 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 /* TOAST */
 #toast{
   position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));
-  left:50%;transform:translateX(-50%) translateY(80px);
+  left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--bg);
   padding:11px 36px 11px 18px;border-radius:6px;
   font-size:.86rem;font-weight:600;z-index:999;
-  transition:transform .28s ease;
+  transition:opacity .28s ease, visibility .28s ease;
   white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);
+  opacity:0;visibility:hidden;
 }
-#toast.show{transform:translateX(-50%) translateY(0);}
+#toast.show{opacity:1;visibility:visible;}
 #toast-close{
   position:absolute;top:50%;right:8px;transform:translateY(-50%);
   background:rgba(255,255,255,.2);border:none;color:#fff;
