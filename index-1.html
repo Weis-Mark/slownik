@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1208">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Słownik NO-PL">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Słownik Norwesko-Polski</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f0e8; --paper:#fdfaf4; --ink:#1a1208;
+  --ink-soft:#4a3f2f; --ink-faint:#9a8f7f;
+  --accent:#8b3a0f; --accent2:#c4622a;
+  --line:#d8cfc0; --highlight:#fff3cd;
+  --shadow:rgba(26,18,8,0.13);
+  --header-h:58px; --search-h:58px; --stats-h:32px;
+  --panel-w:340px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overscroll-behavior:none;}
+
+/* HEADER */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--ink);color:var(--bg);
+  height:var(--header-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;padding-top:env(safe-area-inset-top);
+  box-shadow:0 2px 12px rgba(0,0,0,.35);
+}
+.h-title{font-family:'Libre Baskerville',serif;font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.h-flags{font-size:1.25rem;}
+.h-btns{display:flex;gap:6px;flex-shrink:0;}
+.hbtn{font-family:'Source Sans 3',sans-serif;font-size:0.75rem;font-weight:600;padding:6px 11px;border:none;border-radius:4px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .15s;}
+.hbtn-ghost{background:transparent;color:var(--bg);border:1px solid rgba(245,240,232,.35);}
+.hbtn-ghost:hover{background:rgba(245,240,232,.12);}
+
+/* SEARCH */
+.search-bar{
+  position:fixed;top:calc(var(--header-h) + env(safe-area-inset-top));
+  left:0;right:0;z-index:99;
+  background:var(--paper);border-bottom:1px solid var(--line);
+  padding:10px 14px;display:flex;gap:8px;align-items:center;
+  box-shadow:0 1px 6px var(--shadow);
+}
+.search-input{
+  flex:1;font-family:'Source Sans 3',sans-serif;font-size:1rem;
+  padding:9px 13px;border:1.5px solid var(--line);
+  border-radius:6px 0 0 6px;border-right:none;
+  background:var(--bg);color:var(--ink);outline:none;transition:border-color .15s;
+}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--ink-faint);}
+.search-btn{
+  background:var(--accent);border:none;border-radius:0 6px 6px 0;
+  padding:0 14px;cursor:pointer;color:#fff;font-size:1.15rem;
+  flex-shrink:0;transition:background .15s;height:42px;
+  display:flex;align-items:center;justify-content:center;
+}
+.search-btn:hover{background:var(--accent2);}
+.search-clear{
+  background:var(--line);border:none;border-radius:50%;
+  width:30px;height:30px;cursor:pointer;font-size:.95rem;color:var(--ink-soft);
+  display:none;align-items:center;justify-content:center;flex-shrink:0;
+}
+.search-clear.vis{display:flex;}
+
+/* STATS */
+.stats-bar{
+  position:fixed;top:calc(var(--header-h) + var(--search-h) + env(safe-area-inset-top));
+  left:0;right:0;z-index:96;
+  background:var(--paper);border-bottom:1px solid var(--line);
+  padding:5px 16px;font-size:.78rem;color:var(--ink-faint);
+  display:flex;justify-content:space-between;align-items:center;
+}
+#stats-found{color:var(--accent);font-weight:600;display:none;}
+
+/* LAYOUT */
+.app-body{
+  display:flex;
+  padding-top:calc(var(--header-h) + var(--search-h) + var(--stats-h) + env(safe-area-inset-top));
+  min-height:100vh;
+}
+
+/* SIDE PANEL */
+.side-panel{
+  position:fixed;
+  top:calc(var(--header-h) + var(--search-h) + var(--stats-h) + env(safe-area-inset-top));
+  left:-110vw;
+  width:var(--panel-w);
+  bottom:0;
+  background:var(--paper);
+  border-right:1px solid var(--line);
+  box-shadow:3px 0 16px var(--shadow);
+  z-index:95;
+  display:flex;flex-direction:column;
+  transition:left .3s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+.side-panel.open{left:0;}
+
+.panel-header{
+  padding:12px 14px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;background:var(--paper);
+}
+.panel-title{font-family:'Libre Baskerville',serif;font-size:.9rem;font-weight:700;color:var(--accent);}
+.panel-close{background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--ink-faint);padding:4px;}
+.panel-close:hover{color:var(--ink);}
+
+.panel-list{flex:1;overflow-y:auto;padding:6px 0;}
+.panel-item{
+  padding:10px 14px;cursor:pointer;
+  border-bottom:1px solid rgba(216,207,192,.5);
+  transition:background .12s;
+}
+.panel-item:hover{background:var(--highlight);}
+.panel-item.active{background:#fff3cd;border-left:3px solid var(--accent);}
+.pi-hw{font-family:'Libre Baskerville',serif;font-size:.9rem;font-weight:700;color:var(--accent);line-height:1.3;}
+.pi-tr{font-size:.8rem;color:var(--ink-soft);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pi-lang{font-size:.65rem;font-weight:600;text-transform:uppercase;color:var(--ink-faint);margin-top:2px;}
+
+/* MAIN CONTENT */
+#content{
+  flex:1;
+  padding:12px 14px calc(80px + env(safe-area-inset-bottom));
+  transition:margin-left .28s cubic-bezier(.4,0,.2,1);
+  max-width:860px;width:100%;margin:0 auto;
+}
+#content.shifted{margin-left:var(--panel-w);}
+
+/* PANEL OVERLAY (mobile) */
+.panel-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(26,18,8,.4);z-index:94;
+}
+.panel-overlay.show{display:block;}
+
+/* CARDS */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-bottom:10px;box-shadow:0 1px 4px var(--shadow);overflow:hidden;transition:box-shadow .15s;}
+.card:hover{box-shadow:0 3px 12px var(--shadow);}
+.card-head{padding:11px 14px 9px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.card-hw{font-family:'Libre Baskerville',serif;font-weight:700;font-size:1rem;color:var(--accent);line-height:1.3;}
+.card-tr{font-size:.92rem;color:var(--ink-soft);margin-top:2px;line-height:1.4;}
+.card-meta{display:flex;align-items:flex-start;gap:6px;flex-shrink:0;}
+.lang-badge{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:20px;background:var(--line);color:var(--ink-faint);white-space:nowrap;margin-top:2px;}
+.card-actions{display:flex;gap:5px;}
+.iBtn{background:none;border:1px solid var(--line);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:.82rem;color:var(--ink-soft);transition:all .15s;}
+.iBtn:hover{background:var(--bg);border-color:var(--accent);color:var(--accent);}
+.card-body{padding:0 14px 12px;border-top:1px solid var(--line);display:none;animation:slideDown .18s ease;}
+.card-body.open{display:block;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.c-desc{font-style:italic;color:var(--ink-faint);font-size:.86rem;margin-top:8px;line-height:1.5;}
+.c-meanings{margin-top:9px;}
+.meaning{padding:5px 0 5px 14px;border-left:2px solid var(--line);margin-bottom:5px;font-size:.9rem;line-height:1.4;}
+.meaning-n{font-weight:700;color:var(--accent);font-size:.82rem;margin-right:3px;}
+.c-examples{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);}
+.example{font-size:.86rem;color:var(--ink-soft);margin-bottom:5px;padding-left:10px;border-left:3px solid var(--highlight);line-height:1.5;}
+.ex-tr{font-style:italic;color:var(--ink-faint);font-size:.82rem;}
+mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
+
+/* DETAIL MODAL */
+.detail-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(26,18,8,.6);z-index:300;
+  align-items:center;justify-content:center;
+  padding:16px;
+}
+.detail-overlay.open{display:flex;}
+.detail-modal{
+  background:var(--paper);border-radius:10px;
+  width:100%;max-width:680px;max-height:90vh;
+  box-shadow:0 8px 40px rgba(0,0,0,.4);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.detail-head{
+  background:var(--ink);color:var(--bg);
+  padding:15px 18px;flex-shrink:0;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+}
+.detail-hw{font-family:'Libre Baskerville',serif;font-size:1.1rem;font-weight:700;line-height:1.3;}
+.detail-lang{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block;}
+.detail-head-btns{display:flex;gap:8px;flex-shrink:0;}
+.detail-close{background:none;border:none;color:var(--bg);font-size:1.25rem;cursor:pointer;padding:2px 6px;opacity:.7;}
+.detail-close:hover{opacity:1;}
+.detail-edit-btn{background:var(--accent2);border:none;color:#fff;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.detail-edit-btn:hover{background:#d4722a;}
+.detail-body{padding:18px;overflow-y:auto;flex:1;}
+.detail-tr{font-size:1rem;color:var(--ink);margin-bottom:12px;line-height:1.5;font-weight:600;}
+.detail-desc{font-style:italic;color:var(--ink-faint);font-size:.9rem;margin-bottom:12px;line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:6px;border-left:3px solid var(--line);}
+.detail-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);margin:14px 0 6px;}
+.detail-meaning{padding:7px 0 7px 14px;border-left:2px solid var(--accent2);margin-bottom:6px;font-size:.92rem;line-height:1.5;}
+.detail-meaning-n{font-weight:700;color:var(--accent);margin-right:4px;}
+.detail-example{font-size:.88rem;color:var(--ink-soft);margin-bottom:8px;padding:7px 10px;border-left:3px solid var(--highlight);background:rgba(255,243,205,.3);border-radius:0 4px 4px 0;line-height:1.5;}
+.detail-ex-tr{font-style:italic;color:var(--ink-faint);font-size:.84rem;margin-top:3px;}
+
+/* EMPTY / LOADING */
+.center-msg{text-align:center;padding:60px 20px;color:var(--ink-faint);}
+.center-msg .ico{font-size:2.8rem;margin-bottom:12px;}
+.center-msg p{font-size:.92rem;line-height:1.7;}
+.progress-wrap{text-align:center;padding:50px 20px;}
+.progress-bar-bg{width:100%;max-width:340px;height:8px;background:var(--line);border-radius:4px;margin:14px auto;overflow:hidden;}
+.progress-bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s ease;width:0%;}
+.progress-label{font-size:.82rem;color:var(--ink-faint);}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:1.55rem;cursor:pointer;box-shadow:0 4px 16px rgba(139,58,15,.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.fab:hover{background:var(--accent2);transform:scale(1.06);}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,18,8,.58);z-index:200;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+.overlay.open{display:flex;}
+.modal{background:var(--paper);border-radius:10px;width:100%;max-width:640px;box-shadow:0 8px 32px rgba(0,0,0,.3);overflow:hidden;margin-top:8px;}
+.m-head{background:var(--ink);color:var(--bg);padding:15px 18px;display:flex;justify-content:space-between;align-items:center;}
+.m-title{font-family:'Libre Baskerville',serif;font-size:.98rem;font-weight:700;}
+.m-close{background:none;border:none;color:var(--bg);font-size:1.25rem;cursor:pointer;padding:2px 6px;opacity:.7;}
+.m-close:hover{opacity:1;}
+.m-body{padding:18px;}
+.m-foot{padding:13px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px;}
+.fg{margin-bottom:14px;}
+.fl{display:block;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:5px;}
+.fi,.fta,.fsel{width:100%;font-family:'Source Sans 3',sans-serif;font-size:.93rem;padding:8px 11px;border:1.5px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);outline:none;transition:border-color .15s;}
+.fi:focus,.fta:focus,.fsel:focus{border-color:var(--accent);}
+.fta{resize:vertical;min-height:72px;}
+.frow{display:flex;gap:11px;}
+.frow .fg{flex:1;}
+.sub-list{display:flex;flex-direction:column;gap:7px;}
+.sub-item{display:flex;gap:7px;align-items:flex-start;flex-direction:column;}
+.sub-item-row{display:flex;gap:7px;align-items:flex-start;width:100%;}
+.sub-item textarea{flex:1;font-family:'Source Sans 3',sans-serif;font-size:.86rem;padding:6px 9px;border:1.5px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);resize:vertical;min-height:48px;outline:none;}
+.sub-item textarea:focus{border-color:var(--accent);}
+.sub-rm{background:none;border:1px solid var(--line);border-radius:4px;padding:4px 7px;cursor:pointer;color:#c0392b;font-size:.85rem;flex-shrink:0;margin-top:2px;}
+.sub-rm:hover{background:#fde8e8;}
+.add-sub{font-size:.8rem;font-weight:600;color:var(--accent);background:none;border:1.5px dashed var(--accent2);border-radius:5px;padding:6px 13px;cursor:pointer;margin-top:3px;transition:all .15s;}
+.add-sub:hover{background:#fff3cd;}
+.sec-lbl{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);margin:9px 0 5px;}
+.btn{font-family:'Source Sans 3',sans-serif;font-size:.8rem;font-weight:600;padding:7px 14px;border:none;border-radius:4px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;transition:all .15s;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:var(--accent2);}
+.btn-muted{background:var(--line);color:var(--ink-soft);}
+.btn-muted:hover{background:#c8bfb0;}
+.btn-danger{background:#c0392b;color:#fff;}
+.btn-danger:hover{background:#e74c3c;}
+.imp-area{width:100%;min-height:140px;font-family:'Source Sans 3',sans-serif;font-size:.84rem;padding:10px;border:1.5px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical;outline:none;}
+.imp-area:focus{border-color:var(--accent);}
+.hint{font-size:.78rem;color:var(--ink-faint);margin-top:5px;font-style:italic;}
+
+/* CUSTOM FIELDS */
+.custom-field{margin-bottom:8px;}
+.cf-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:3px;}
+.cf-value{font-size:.9rem;color:var(--ink-soft);line-height:1.5;padding:6px 10px;background:var(--bg);border-radius:5px;border-left:3px solid var(--accent2);}
+
+/* detail custom fields */
+.detail-cf{margin-bottom:10px;}
+.detail-cf-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:4px;}
+.detail-cf-value{font-size:.92rem;color:var(--ink-soft);line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:5px;border-left:3px solid var(--accent2);}
+
+/* MERGE & DUPLICATES */
+.tool-overlay{display:none;position:fixed;inset:0;background:rgba(26,18,8,.58);z-index:200;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+.tool-overlay.open{display:flex;}
+.merge-card{background:var(--paper);border:2px solid var(--line);border-radius:8px;margin-bottom:8px;padding:10px 14px;cursor:pointer;transition:all .15s;}
+.merge-card.selected{border-color:var(--accent);background:#fff8f0;}
+.merge-card .mc-hw{font-family:'Libre Baskerville',serif;font-weight:700;color:var(--accent);font-size:.95rem;}
+.merge-card .mc-tr{font-size:.85rem;color:var(--ink-soft);margin-top:2px;}
+.merge-card .mc-lang{font-size:.68rem;text-transform:uppercase;color:var(--ink-faint);margin-top:2px;}
+.dup-item{background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.dup-head{background:var(--highlight);padding:8px 14px;font-size:.8rem;font-weight:600;color:var(--accent);border-bottom:1px solid var(--line);}
+.dup-entry{padding:9px 14px;border-bottom:1px solid rgba(216,207,192,.4);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.dup-entry:last-child{border-bottom:none;}
+.dup-hw{font-family:'Libre Baskerville',serif;font-size:.9rem;font-weight:700;color:var(--accent);}
+.dup-tr{font-size:.82rem;color:var(--ink-soft);margin-top:1px;}
+.dup-btns{display:flex;gap:5px;flex-shrink:0;}
+
+/* MEANING BLOCKS */
+.meaning-block{
+  border:1.5px solid var(--line);border-radius:7px;
+  background:var(--bg);overflow:hidden;
+}
+.meaning-block-head{
+  background:var(--highlight);padding:8px 12px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--line);
+}
+.meaning-block-num{
+  font-family:'Libre Baskerville',serif;
+  font-size:.82rem;font-weight:700;color:var(--accent);
+}
+.meaning-block-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.meaning-block textarea{
+  width:100%;font-family:'Source Sans 3',sans-serif;font-size:.88rem;
+  padding:7px 10px;border:1.5px solid var(--line);border-radius:5px;
+  background:var(--paper);color:var(--ink);resize:vertical;min-height:52px;outline:none;
+}
+.meaning-block textarea:focus{border-color:var(--accent);}
+.meaning-examples{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.meaning-example-row{display:flex;gap:6px;align-items:flex-start;}
+.meaning-example-row textarea{flex:1;min-height:44px;}
+.add-example-btn{
+  font-size:.75rem;font-weight:600;color:var(--accent2);
+  background:none;border:1px dashed var(--accent2);
+  border-radius:4px;padding:4px 10px;cursor:pointer;
+  transition:all .15s;align-self:flex-start;
+}
+.add-example-btn:hover{background:#fff3cd;}
+
+/* CARD meaning with examples */
+.meaning-with-ex{margin-bottom:10px;}
+.meaning-ex-list{margin-top:5px;padding-left:10px;}
+.meaning-ex-item{
+  font-size:.84rem;color:var(--ink-soft);
+  padding:4px 8px;margin-bottom:4px;
+  border-left:3px solid var(--highlight);
+  background:rgba(255,243,205,.3);border-radius:0 4px 4px 0;
+  line-height:1.5;
+}
+.meaning-ex-tr{font-style:italic;color:var(--ink-faint);font-size:.8rem;margin-top:2px;}
+
+/* HOLD TO DELETE */
+.iBtn-danger{
+  background:none;border:1px solid var(--line);border-radius:4px;
+  padding:4px 8px;cursor:pointer;font-size:.82rem;color:var(--ink-soft);
+  transition:all .15s;position:relative;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+}
+.iBtn-danger:hover{background:#fde8e8;border-color:#c0392b;color:#c0392b;}
+.iBtn-danger .hold-progress{
+  position:absolute;bottom:0;left:0;height:3px;
+  background:#c0392b;width:0%;transition:none;
+  border-radius:0 0 4px 4px;
+}
+.iBtn-danger.holding .hold-progress{
+  width:100%;transition:width 1s linear;
+}
+
+/* SEARCH FILTERS */
+.search-filters{
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  padding:6px 14px 8px;
+  background:var(--paper);
+  border-bottom:1px solid var(--line);
+  position:fixed;
+  top:calc(var(--header-h) + var(--search-h) + env(safe-area-inset-top));
+  left:0;right:0;z-index:97;
+}
+.filter-btn{
+  font-size:.72rem;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+  border:1.5px solid var(--line);
+  background:var(--bg);color:var(--ink-soft);
+  cursor:pointer;transition:all .15s;
+  white-space:nowrap;
+}
+.filter-btn.active{
+  background:var(--accent);color:#fff;
+  border-color:var(--accent);
+}
+.filter-btn:hover:not(.active){background:var(--highlight);}
+
+/* LANG DROPDOWN */
+.lang-dropdown{
+  display:none;position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--ink);color:var(--bg);
+  border-radius:8px;padding:6px;min-width:150px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:300;
+}
+.lang-dropdown.open{display:block;}
+.lang-dropdown button{
+  display:flex;align-items:center;gap:8px;width:100%;
+  background:none;border:none;color:var(--bg);
+  padding:6px 10px;border-radius:5px;cursor:pointer;
+  font-size:.82rem;font-family:'Source Sans 3',sans-serif;
+  text-align:left;transition:background .12s;
+}
+.lang-dropdown button:hover{background:rgba(255,255,255,.12);}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px 11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;}
+#toast::after{content:' ✕';opacity:.5;margin-left:8px;font-size:.75rem;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+#sentinel{height:1px;}
+
+@media(max-width:768px){
+  .h-title span:not(.h-flags){display:none;}
+  .frow{flex-direction:column;}
+  #content.shifted{margin-left:0;}
+  .side-panel{width:88vw;max-width:360px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-title">
+    <span class="h-flags">🇳🇴🇵🇱</span>
+    <span>Słownik Norwesko-Polski</span>
+  </div>
+  <div class="h-btns">
+    <button class="hbtn hbtn-ghost" id="searchModeBtn" onclick="cycleSearchMode()" title="Tryb wyszukiwania">🔍 Wszędzie</button>
+    <div style="position:relative;">
+      <button class="hbtn hbtn-ghost" onclick="toggleLangMenu()" title="Filtr języka" id="langMenuBtn">🌐▾</button>
+      <div class="lang-dropdown" id="langDropdown">
+        <button onclick="toggleLangFilter('no')"><span id="lf-no">○</span> 🇳🇴 Norweski</button>
+        <button onclick="toggleLangFilter('pl')"><span id="lf-pl">○</span> 🇵🇱 Polski</button>
+        <button onclick="toggleLangFilter('ru')"><span id="lf-ru">○</span> 🇷🇺 Rosyjski</button>
+        <button onclick="toggleLangFilter('en')"><span id="lf-en">○</span> 🇬🇧 Angielski</button>
+        <button onclick="toggleLangFilter('la')"><span id="lf-la">○</span> 🏛 Łacina</button>
+        <button onclick="toggleLangFilter('de')"><span id="lf-de">○</span> 🇩🇪 Niemiecki</button>
+        <button onclick="clearLangFilter()" style="border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:8px;opacity:.7;">✕ Wyczyść</button>
+      </div>
+    </div>
+    <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓</button>
+    <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Duplikaty">Dup.</button>
+    <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
+    <button class="hbtn hbtn-ghost" onclick="exportData()">Eksport</button>
+    <button class="hbtn hbtn-ghost" onclick="softRefresh()" title="Odśwież widok (bez internetu)">↺</button>
+    <button class="hbtn hbtn-ghost" onclick="hardRefresh()" title="Pełne odświeżenie (wymaga internetu)">🔄</button>
+  </div>
+</header>
+
+<div class="search-bar">
+  <input class="search-input" id="searchInput" type="search"
+    placeholder="Szukaj hasła, tłumaczenia, przykładu…"
+    onkeydown="if(event.key==='Enter')doSearch()"
+    autocomplete="off" spellcheck="false">
+  <button class="search-btn" onclick="doSearch()" title="Szukaj">🔍</button>
+  <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+</div>
+
+<div class="stats-bar">
+  <span id="statsTotal">Ładowanie bazy danych…</span>
+  <span id="stats-found"></span>
+</div>
+
+<!-- SIDE PANEL -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+  <div class="panel-header">
+    <span class="panel-title" id="panelTitle">Wyniki wyszukiwania</span>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-list" id="panelList"></div>
+</div>
+
+<div class="app-body">
+  <div id="content">
+    <div class="progress-wrap" id="loadingMsg">
+      <div style="font-size:2.5rem">📖</div>
+      <div style="font-size:.95rem;color:var(--ink-soft);margin-bottom:12px;">Inicjalizacja bazy danych…</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Proszę czekać…</div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="openAdd()" title="Dodaj hasło">＋</button>
+
+<!-- DETAIL MODAL -->
+<div class="detail-overlay" id="detailModal">
+  <div class="detail-modal">
+    <div class="detail-head">
+      <div>
+        <div class="detail-hw" id="detailHw"></div>
+        <span class="detail-lang" id="detailLang"></span>
+      </div>
+      <div class="detail-head-btns">
+        <button class="detail-edit-btn" onclick="editFromDetail()">✏️ Edytuj</button>
+        <button class="detail-close" onclick="closeDetailModal()">✕</button>
+      </div>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- ENTRY MODAL -->
+<div class="overlay" id="entryModal">
+  <div class="modal">
+    <div class="m-head">
+      <span class="m-title" id="modalTitle">Nowe hasło</span>
+      <button class="m-close" onclick="closeModal('entryModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="frow">
+        <div class="fg" style="flex:2">
+          <label class="fl">Hasło *</label>
+          <input class="fi" id="fHw" placeholder="np. en blamasje" autocomplete="off">
+        </div>
+        <div class="fg" style="flex:0 0 130px">
+          <label class="fl">Język</label>
+          <select class="fsel" id="fLang">
+            <option value="no">🇳🇴 Norweski</option>
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="en">🇬🇧 Angielski</option>
+            <option value="de">🇩🇪 Niemiecki</option>
+            <option value="la">🏛 Łacina</option>
+            <option value="ru">🇷🇺 Rosyjski</option>
+            <option value="es">🇪🇸 Hiszpański</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Tłumaczenie <span style="font-weight:300;text-transform:none;font-size:.75rem;">(opcjonalne)</span></label>
+        <input class="fi" id="fTr" placeholder="np. blamaż, wpadka, plama">
+      </div>
+      <div class="fg">
+        <div class="sec-lbl">Przykłady użycia <span style="font-weight:300;text-transform:none;font-size:.75rem;">(do tłumaczenia)</span></div>
+        <div id="topExamplesList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <button class="add-sub" onclick="addTopExample()" style="margin-top:4px;">＋ Dodaj przykład użycia</button>
+      </div>
+      <div class="fg">
+        <div class="sec-lbl">Znaczenia (z przykładami użycia)</div>
+        <div id="meaningsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button class="add-sub" onclick="addMeaning()" style="margin-top:6px;">＋ Dodaj znaczenie</button>
+      </div>
+      <div class="fg">
+        <div class="sec-lbl">Własne rubryki (np. odmiana, rodzaj, uwagi…)</div>
+        <div class="sub-list" id="fieldsList"></div>
+        <button class="add-sub" onclick="addCustomField()">＋ Dodaj rubrykę</button>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeModal('entryModal')">Anuluj</button>
+      <button class="btn btn-accent" onclick="saveEntry()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="overlay" id="importModal">
+  <div class="modal">
+    <div class="m-head">
+      <span class="m-title">Importuj dane (JSON)</span>
+      <button class="m-close" onclick="closeModal('importModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label class="fl">Wczytaj plik JSON</label>
+        <input type="file" id="importFile" accept=".json" onchange="loadImportFile(this)" style="font-size:.9rem;padding:6px 0;">
+        <p class="hint">Wybierz plik JSON wyeksportowany z tej aplikacji lub z innego urządzenia.</p>
+      </div>
+      <div class="fg">
+        <label class="fl">Lub wklej dane JSON</label>
+        <textarea class="imp-area" id="importText" placeholder='[{"headword":"en blamasje","lang":"no","translation":"blamaż","description":"","meanings":[],"examples":[]}]'></textarea>
+      </div>
+      <div class="fg">
+        <label class="fl">Tryb importu</label>
+        <select class="fsel" id="importMode">
+          <option value="merge">Scal — zachowaj istniejące + dodaj nowe</option>
+          <option value="replace">Zastąp wszystko (uwaga: usunie obecne hasła!)</option>
+        </select>
+      </div>
+      <div id="importProgress" style="display:none;margin-top:10px;">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="importFill"></div></div>
+        <div class="progress-label" id="importLabel">Importowanie…</div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeModal('importModal')">Anuluj</button>
+      <button class="btn btn-accent" onclick="doImport()">Importuj</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="overlay" id="deleteModal">
+  <div class="modal" style="max-width:380px">
+    <div class="m-head">
+      <span class="m-title">Usuń hasło</span>
+      <button class="m-close" onclick="closeModal('deleteModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <p style="line-height:1.6">Czy usunąć hasło <strong id="delWord"></strong>?<br>
+      <small style="color:var(--ink-faint)">Tej operacji nie można cofnąć.</small></p>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeModal('deleteModal')">Anuluj</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Usuń</button>
+    </div>
+  </div>
+</div>
+
+<!-- MERGE MODAL -->
+<div class="tool-overlay" id="mergeModal">
+  <div class="modal" style="max-width:680px;">
+    <div class="m-head">
+      <span class="m-title">⛓ Scal hasła</span>
+      <button class="m-close" onclick="closeToolModal('mergeModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <p style="font-size:.88rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.6;">
+        Wpisz nazwę nowego hasła, wyszukaj i zaznacz hasła do scalenia, potem kliknij <strong>Scal zaznaczone</strong>.
+      </p>
+      <div class="fg" style="margin-bottom:10px;">
+        <label class="fl">Nowe hasło główne *</label>
+        <div style="display:flex;gap:8px;">
+          <input class="fi" id="mergeNewHw" placeholder="np. przegub" autocomplete="off" style="flex:1;">
+          <select class="fsel" id="mergeNewLang" style="flex:0 0 130px;">
+            <option value="no">🇳🇴 Norweski</option>
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="en">🇬🇧 Angielski</option>
+            <option value="de">🇩🇪 Niemiecki</option>
+            <option value="la">🏛 Łacina</option>
+            <option value="ru">🇷🇺 Rosyjski</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="fi" id="mergeSearch" placeholder="Szukaj haseł do scalenia…" 
+          oninput="renderMergeList(this.value)" style="flex:1;">
+        <button class="btn btn-muted" onclick="clearMergeSelection()">Odznacz</button>
+      </div>
+      <div style="font-size:.8rem;color:var(--accent);font-weight:600;margin-bottom:6px;" id="mergeSelCount">Zaznaczono: 0</div>
+      <div id="mergeList" style="max-height:320px;overflow-y:auto;"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeToolModal('mergeModal')">Anuluj</button>
+      <button class="btn btn-accent" onclick="doMerge()">⛓ Scal zaznaczone</button>
+    </div>
+  </div>
+</div>
+
+<!-- DUPLICATES MODAL -->
+<div class="tool-overlay" id="dupModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="m-head">
+      <span class="m-title">🔍 Potencjalne duplikaty</span>
+      <button class="m-close" onclick="closeToolModal('dupModal')">✕</button>
+    </div>
+    <div class="m-body">
+      <p style="font-size:.88rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.6;" id="dupSummary">Szukam duplikatów…</p>
+      <div id="dupList" style="max-height:440px;overflow-y:auto;"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-muted" onclick="closeToolModal('dupModal')">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" onclick="dismissToast()"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// IndexedDB
+// ═══════════════════════════════════════════════════════════
+const DB_NAME='SlownikDB', DB_VER=1, STORE='entries';
+let db=null;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VER);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        const s=d.createObjectStore(STORE,{keyPath:'id'});
+        s.createIndex('headword','headword',{unique:false});
+        s.createIndex('lang','lang',{unique:false});
+      }
+    };
+    r.onsuccess=e=>{db=e.target.result;res(db);};
+    r.onerror=e=>rej(e.target.error);
+  });
+}
+function dbGetAll(){return new Promise((res)=>{const tx=db.transaction(STORE,'readonly');tx.objectStore(STORE).getAll().onsuccess=e=>res(e.target.result);});}
+function dbPut(entry){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(entry).onsuccess=()=>res();tx.onerror=e=>rej(e.target.error);});}
+function dbDelete(id){return new Promise((res)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id).onsuccess=()=>res();});}
+function dbClear(){return new Promise((res)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear().onsuccess=()=>res();});}
+async function dbBulkPut(entries,onProgress){
+  const CHUNK=500;
+  for(let i=0;i<entries.length;i+=CHUNK){
+    const chunk=entries.slice(i,i+CHUNK);
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(STORE,'readwrite');
+      const store=tx.objectStore(STORE);
+      chunk.forEach(e=>store.put(e));
+      tx.oncomplete=res; tx.onerror=e=>rej(e.target.error);
+    });
+    if(onProgress)onProgress(Math.min(i+CHUNK,entries.length),entries.length);
+    await new Promise(r=>setTimeout(r,0));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let allEntries=[], filtered=[], currentQuery='';
+let editingId=null, deleteId=null, detailId=null;
+let renderCount=50;
+const PAGE_SIZE=30;
+const LANG_LABELS={no:'Norweski',pl:'Polski',en:'Angielski',de:'Niemiecki',la:'Łacina',ru:'Rosyjski',es:'Hiszpański'};
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init(){
+  setProgress(10,'Otwieranie bazy danych…');
+  await openDB();
+  setProgress(40,'Wczytywanie haseł…');
+  allEntries=await dbGetAll();
+  allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));
+  setProgress(90,`Załadowano ${allEntries.length} haseł…`);
+  await new Promise(r=>setTimeout(r,100));
+  if(allEntries.length===0)await loadSampleData();
+  filtered=allEntries;
+  updateStats();
+  renderList();
+  const lm=document.getElementById('loadingMsg');
+  if(lm)lm.style.display='none';
+}
+function setProgress(pct,label){
+  const f=document.getElementById('progressFill'),l=document.getElementById('progressLabel');
+  if(f)f.style.width=pct+'%';if(l)l.textContent=label;
+}
+async function loadSampleData(){
+  const s=[
+    {id:genId(),lang:'no',headword:'en blamasje',translation:'blamaż, wpadka, plama, wsypa',description:'noe som gjør at man blamerer seg',meanings:[],examples:[{text:'en slem blamasje',translation:''},{text:'for å rette på blamasjen hadde han forært henne sin bok',translation:''}]},
+    {id:genId(),lang:'no',headword:'en kneik',translation:'zagwozdka, szkopuł, trudność',description:'',meanings:[],examples:[]},
+    {id:genId(),lang:'no',headword:'en teknikalitet',translation:'technikalia, szczegóły techniczne',description:'formell detalj ved måten noe skal skje på',meanings:[],examples:[]},
+    {id:genId(),lang:'ru',headword:'что упало то пропало',translation:'co upadło to przepadło',description:'falt er tapt',meanings:[],examples:[]},
+    {id:genId(),lang:'la',headword:'in saecula saeculorum',translation:'na wieki wieków',description:'for evig og alltid',meanings:[],examples:[]},
+  ];
+  await dbBulkPut(s);allEntries=s;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════
+function doSearch(){onSearch(document.getElementById('searchInput').value);}
+function onSearch(q){
+  currentQuery=q.trim().toLowerCase();
+  document.getElementById('searchClear').classList.toggle('vis',q.length>0);
+  renderCount=50;
+  
+  let results = allEntries;
+  
+  // Apply language filter
+  if (activeLangs.size > 0) {
+    results = results.filter(e => activeLangs.has(e.lang));
+  }
+  
+  // Apply text search
+  if (currentQuery) {
+    results = results.filter(e => matchEntry(e, currentQuery));
+  }
+  
+  filtered = results;
+  updateStats();
+  renderList();
+  if((currentQuery||activeLangs.size>0)&&filtered.length>0)openPanel();
+  else if(!currentQuery&&activeLangs.size===0)closePanel();
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  activeLangs.clear();
+  ['no','pl','ru','en','la','de'].forEach(l=>{
+    const el=document.getElementById('lf-'+l);
+    if(el)el.textContent='○';
+  });
+  const btn = document.getElementById('langMenuBtn');
+  if (btn) btn.textContent = '🌐▾';
+  onSearch('');
+}
+
+function matchEntry(e, q){
+  if (!q) return true;
+  const hw = (e.headword||'').toLowerCase();
+  
+  if (searchMode === 'exact') {
+    // Dokładne dopasowanie - normalizuj hasło (usuń myślniki, ukośniki na końcu)
+    const hwNorm = hw.replace(/[-–—/\s]+$/, '').trim();
+    const qNorm = q.replace(/[-–—/\s]+$/, '').trim();
+    return hwNorm === qNorm || 
+           hw === q ||
+           hwNorm.startsWith(qNorm + ' ') || 
+           hwNorm.startsWith(qNorm + '-') ||
+           hwNorm.startsWith(qNorm + '/');
+  } else if (searchMode === 'start') {
+    // Hasło zaczyna się od szukanej frazy
+    return hw.startsWith(q);
+  } else {
+    // Wszędzie - standardowe wyszukiwanie
+    return [e.headword,e.translation,e.description,
+            ...(e.meanings||[]).map(m=>m.text),
+            ...(e.examples||[]).map(ex=>ex.text+' '+(ex.translation||''))
+           ].some(f=>f&&f.toLowerCase().includes(q));
+  }
+}
+function updateStats(){
+  document.getElementById('statsTotal').textContent=`Łącznie: ${allEntries.length} haseł`;
+  const sf=document.getElementById('stats-found');
+  if(currentQuery){sf.textContent=`Znaleziono: ${filtered.length}`;sf.style.display='inline';}
+  else sf.style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDE PANEL
+// ═══════════════════════════════════════════════════════════
+function openPanel(){
+  const panel=document.getElementById('sidePanel');
+  const overlay=document.getElementById('panelOverlay');
+  const content=document.getElementById('content');
+  panel.classList.add('open');
+  overlay.classList.add('show');
+  // shift content only on wide screens
+  if(window.innerWidth>768)content.classList.add('shifted');
+  renderPanel();
+}
+function closePanel(){
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('panelOverlay').classList.remove('show');
+  document.getElementById('content').classList.remove('shifted');
+}
+function renderPanel(){
+  const list=document.getElementById('panelList');
+  const title=document.getElementById('panelTitle');
+  title.textContent=`Wyniki: ${filtered.length}`;
+  if(filtered.length===0){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:.88rem;">Brak wyników</div>';
+    return;
+  }
+  list.innerHTML=filtered.slice(0,500).map(e=>`
+    <div class="panel-item ${detailId===e.id?'active':''}" onclick="openDetail('${e.id}')">
+      <div class="pi-hw">${hi(e.headword,currentQuery)}</div>
+      <div class="pi-tr">${hi(e.translation,currentQuery)}</div>
+      <div class="pi-lang">${LANG_LABELS[e.lang]||e.lang}</div>
+    </div>`).join('');
+  if(filtered.length>500){
+    list.innerHTML+=`<div style="padding:10px 14px;font-size:.78rem;color:var(--ink-faint);text-align:center;">Pokazano 500 z ${filtered.length} wyników. Zawęź wyszukiwanie.</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// DETAIL MODAL
+// ═══════════════════════════════════════════════════════════
+function openDetail(id){
+  const e=allEntries.find(x=>x.id===id);
+  if(!e)return;
+  detailId=id;
+  // highlight active in panel
+  document.querySelectorAll('.panel-item').forEach(el=>el.classList.remove('active'));
+  const items=document.querySelectorAll('.panel-item');
+  items.forEach(el=>{if(el.onclick.toString().includes(id))el.classList.add('active');});
+  renderPanel(); // re-render to update active state
+
+  document.getElementById('detailHw').textContent=e.headword;
+  document.getElementById('detailLang').textContent=LANG_LABELS[e.lang]||e.lang;
+
+  let html=`<div class="detail-tr">${esc(e.translation)}</div>`;
+  if(e.description)html+=`<div class="detail-desc">${esc(e.description)}</div>`;
+  if(e.meanings&&e.meanings.length>0){
+    html+=`<div class="detail-section-title">Znaczenia</div>`;
+    html+=e.meanings.map((m,i)=>{
+      const mExs = m.examples && m.examples.length > 0
+        ? `<div style="margin-top:6px;padding-left:10px;">${m.examples.map(ex=>
+            `<div class="detail-example">${esc(ex.text)}${ex.translation?`<div class="detail-ex-tr">${esc(ex.translation)}</div>`:''}</div>`
+          ).join('')}</div>`
+        : '';
+      return `<div class="detail-meaning"><span class="detail-meaning-n">${i+1}.</span>${esc(m.text)}${mExs}</div>`;
+    }).join('');
+  }
+  if(e.examples&&e.examples.length>0){
+    html+=`<div class="detail-section-title">Przykłady użycia</div>`;
+    html+=e.examples.map(ex=>`<div class="detail-example">${esc(ex.text)}${ex.translation?`<div class="detail-ex-tr">${esc(ex.translation)}</div>`:''}</div>`).join('');
+  }
+  if(e.fields&&e.fields.length>0){
+    html+=`<div class="detail-section-title">Własne rubryki</div>`;
+    html+=e.fields.map(f=>`<div class="detail-cf"><div class="detail-cf-label">${esc(f.label)}</div><div class="detail-cf-value">${esc(f.value)}</div></div>`).join('');
+  }
+  document.getElementById('detailBody').innerHTML=html;
+  document.getElementById('detailModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDetailModal(){
+  document.getElementById('detailModal').classList.remove('open');
+  document.body.style.overflow='';
+  detailId=null;
+}
+function editFromDetail(){
+  const id=detailId;
+  closeDetailModal();
+  openEdit(id);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER LIST
+// ═══════════════════════════════════════════════════════════
+function renderList(){
+  const container=document.getElementById('content');
+  const toShow=filtered.slice(0,renderCount);
+  if(filtered.length===0){
+    container.innerHTML=`<div class="center-msg"><div class="ico">${currentQuery?'🔍':'📖'}</div><p>${currentQuery?`Nie znaleziono „<strong>${esc(currentQuery)}</strong>".<br>Spróbuj innego słowa.`:'Słownik jest pusty.<br>Kliknij <strong>＋</strong> aby dodać pierwsze hasło.'}</p></div>`;
+    return;
+  }
+  container.innerHTML=toShow.map(e=>cardHtml(e)).join('')+(filtered.length>renderCount?'<div id="sentinel"></div>':'');
+  const sentinel=document.getElementById('sentinel');
+  if(sentinel){
+    const obs=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting){obs.disconnect();renderCount+=PAGE_SIZE;renderList();}
+    },{rootMargin:'200px'});
+    obs.observe(sentinel);
+  }
+}
+function cardHtml(e){
+  const q=currentQuery, lang=LANG_LABELS[e.lang]||e.lang;
+  const hasMeanings=e.meanings&&e.meanings.length>0;
+  const hasExamples=e.examples&&e.examples.length>0;
+  const hasBody=e.description||hasMeanings||hasExamples;
+  const meaningsHtml = hasMeanings ? `<div class="c-meanings">${
+    e.meanings.map((m,i) => {
+      const mExamples = m.examples && m.examples.length > 0
+        ? `<div class="meaning-ex-list">${m.examples.map(ex =>
+            `<div class="meaning-ex-item">${hi(ex.text,q)}${ex.translation?`<div class="meaning-ex-tr">${hi(ex.translation,q)}</div>`:''}</div>`
+          ).join('')}</div>`
+        : '';
+      return `<div class="meaning-with-ex"><div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}</div>${mExamples}</div>`;
+    }).join('')
+  }</div>` : '';
+  // Top-level examples (under translation)
+  const examplesHtml=hasExamples?`<div class="c-examples" style="margin-top:6px;">${e.examples.map(ex=>`<div class="example">${hi(ex.text,q)}${ex.translation?`<div class="ex-tr">${hi(ex.translation,q)}</div>`:''}</div>`).join('')}</div>`:'';
+  const hasFields=e.fields&&e.fields.length>0;
+  const fieldsHtml=hasFields?`<div class="c-fields" style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">${e.fields.map(f=>`<div class="custom-field"><div class="cf-label">${esc(f.label)}</div><div class="cf-value">${esc(f.value)}</div></div>`).join('')}</div>`:'';
+  const bodyHtml=(hasBody||hasFields)?`<div class="card-body" id="b-${e.id}">${e.description?`<div class="c-desc">(${hi(e.description,q)})</div>`:''}${meaningsHtml}${examplesHtml}${fieldsHtml}</div>`:'';
+  return `<div class="card" id="c-${e.id}">
+    <div class="card-head" onclick="${hasBody?`toggleBody('${e.id}')`:''}" style="${!hasBody?'cursor:default':''}">
+      <div style="flex:1;min-width:0">
+        <div class="card-hw">${hi(e.headword,q)}</div>
+        <div class="card-tr">${hi(e.translation,q)}</div>
+      </div>
+      <div class="card-meta">
+        <span class="lang-badge">${lang}</span>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="iBtn" onclick="openDetail('${e.id}')" title="Szczegóły">👁</button>
+          <button class="iBtn" onclick="openEdit('${e.id}')" title="Edytuj">✏️</button>
+          <button class="iBtn-danger" title="Przytrzymaj 1s żeby usunąć" 
+            onmousedown="startHoldDelete('${e.id}',this)" 
+            onmouseup="cancelHoldDelete()" 
+            onmouseleave="cancelHoldDelete()"
+            ontouchstart="startHoldDelete('${e.id}',this)" 
+            ontouchend="cancelHoldDelete()">🗑<span class="hold-progress"></span></button>
+        </div>
+      </div>
+    </div>
+    ${bodyHtml}
+  </div>`;
+}
+function toggleBody(id){const el=document.getElementById('b-'+id);if(el)el.classList.toggle('open');}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hi(text,q){
+  const s=esc(text||'');
+  if(!q)return s;
+  return s.replace(new RegExp('('+esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';if(id==='entryModal')editingId=null;}
+document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);});});
+document.querySelectorAll('.tool-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)closeToolModal(o.id);});});
+document.getElementById('detailModal').addEventListener('click',e=>{if(e.target===document.getElementById('detailModal'))closeDetailModal();});
+
+function openAdd(){editingId=null;document.getElementById('modalTitle').textContent='Nowe hasło';clearForm();openModal('entryModal');setTimeout(()=>document.getElementById('fHw').focus(),120);}
+function openEdit(id){
+  const e=allEntries.find(x=>x.id===id);if(!e)return;
+  editingId=id;
+  document.getElementById('modalTitle').textContent='Edytuj hasło';
+  document.getElementById('fHw').value=e.headword||'';
+  document.getElementById('fLang').value=e.lang||'no';
+  document.getElementById('fTr').value=e.translation||'';
+  document.getElementById('meaningsList').innerHTML='';
+  document.getElementById('topExamplesList').innerHTML='';
+  // Load top-level examples
+  (e.examples||[]).forEach(ex=>addTopExample(ex.text||'', ex.translation||''));
+  // Load meanings with their examples
+  (e.meanings||[]).forEach(m=>addMeaning(m.text||'', m.examples||[]));
+  document.getElementById('fieldsList').innerHTML='';
+  (e.fields||[]).forEach(f=>addCustomField(f.label||'',f.value||''));
+  openModal('entryModal');
+  setTimeout(()=>document.getElementById('fHw').focus(),120);
+}
+function openDel(id){deleteId=id;const e=allEntries.find(x=>x.id===id);document.getElementById('delWord').textContent=e?`„${e.headword}"`:'';openModal('deleteModal');}
+async function confirmDelete(){
+  try {
+    await dbDelete(deleteId);
+    allEntries=allEntries.filter(e=>e.id!==deleteId);
+    filtered=filtered.filter(e=>e.id!==deleteId);
+    updateStats();renderList();
+    if(currentQuery)renderPanel();
+    closeModal('deleteModal');
+    toast('Hasło usunięte');
+  } catch(err) {
+    console.error('Delete error:', err);
+    toast('⚠ Błąd usuwania: ' + err.message);
+  }
+}
+function clearForm(){['fHw','fTr'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('topExamplesList').innerHTML='';document.getElementById('fieldsList').innerHTML='';}
+function addMeaning(text='', examples=[]){
+  const list = document.getElementById('meaningsList');
+  const num = list.querySelectorAll('.meaning-block').length + 1;
+  const div = document.createElement('div');
+  div.className = 'meaning-block';
+  const exHtml = (Array.isArray(examples)?examples:[]).map(ex => `
+    <div class="meaning-example-row">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+        <textarea placeholder="Przykład użycia…">${esc(ex.text||'')}</textarea>
+        <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;">${esc(ex.translation||'')}</textarea>
+      </div>
+      <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>
+    </div>`).join('');
+  div.innerHTML = `
+    <div class="meaning-block-head">
+      <span class="meaning-block-num">Znaczenie ${num}</span>
+      <button class="sub-rm" onclick="this.closest('.meaning-block').remove();renumberMeanings()">✕ Usuń</button>
+    </div>
+    <div class="meaning-block-body">
+      <textarea placeholder="Treść znaczenia / definicja…" style="min-height:60px;">${esc(text)}</textarea>
+      <div class="meaning-examples">${exHtml}</div>
+      <button class="add-example-btn" onclick="addExampleToMeaning(this)">＋ Dodaj przykład do tego znaczenia</button>
+    </div>`;
+  list.appendChild(div);
+}
+
+function addTopExample(text='', tr=''){
+  const list = document.getElementById('topExamplesList');
+  const row = document.createElement('div');
+  row.className = 'meaning-example-row';
+  row.innerHTML = `
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+      <textarea class="fta" placeholder="Przykład użycia…" style="min-height:52px;">${esc(text)}</textarea>
+      <textarea class="fta" placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;">${esc(tr)}</textarea>
+    </div>
+    <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>`;
+  list.appendChild(row);
+}
+
+function renumberMeanings(){
+  document.querySelectorAll('#meaningsList .meaning-block').forEach((block,i)=>{
+    const n=block.querySelector('.meaning-block-num');
+    if(n) n.textContent=`Znaczenie ${i+1}`;
+  });
+}
+
+function addExampleToMeaning(btn){
+  const exList = btn.previousElementSibling;
+  const row = document.createElement('div');
+  row.className = 'meaning-example-row';
+  row.innerHTML = `
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+      <textarea placeholder="Przykład użycia…"></textarea>
+      <textarea placeholder="Tłumaczenie przykładu (opcjonalne)…" style="min-height:36px;"></textarea>
+    </div>
+    <button class="sub-rm" onclick="this.closest('.meaning-example-row').remove()" style="margin-top:2px;">✕</button>`;
+  exList.appendChild(row);
+}
+
+function addCustomField(label='',value=''){
+  const div=document.createElement('div');div.className='sub-item';
+  div.innerHTML=`<div class="sub-item-row" style="gap:6px;align-items:flex-start;">
+    <input type="text" class="fi" placeholder="Nazwa rubryki (np. odmiana)" style="flex:0 0 160px;min-width:0;font-size:.84rem;padding:6px 8px;" value="${esc(label)}">
+    <textarea placeholder="Treść…" style="flex:1;min-height:52px;">${esc(value)}</textarea>
+    <button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button>
+  </div>`;
+  document.getElementById('fieldsList').appendChild(div);
+}
+
+async function saveEntry(){
+  const hw=document.getElementById('fHw').value.trim();
+  const tr=document.getElementById('fTr').value.trim();
+  if(!hw){toast('⚠ Hasło jest wymagane');return;}
+  // Read meanings with their examples
+  const meanings = Array.from(document.querySelectorAll('#meaningsList .meaning-block')).map(block => {
+    const tas = block.querySelectorAll(':scope > .meaning-block-body > textarea');
+    const text = tas[0]?.value.trim() || '';
+    const examples = Array.from(block.querySelectorAll('.meaning-example-row')).map(row => {
+      const rowTas = row.querySelectorAll('textarea');
+      return {text: rowTas[0]?.value.trim()||'', translation: rowTas[1]?.value.trim()||''};
+    }).filter(ex => ex.text);
+    return {text, translation:'', examples};
+  }).filter(m => m.text);
+  // Read top-level examples (under translation)
+  const examples = Array.from(document.querySelectorAll('#topExamplesList .meaning-example-row')).map(row=>{
+    const tas = row.querySelectorAll('textarea');
+    return {text: tas[0]?.value.trim()||'', translation: tas[1]?.value.trim()||''};
+  }).filter(ex=>ex.text);
+  const fields=Array.from(document.querySelectorAll('#fieldsList .sub-item')).map(item=>{const inp=item.querySelector('input[type=text]');const ta=item.querySelector('textarea');return{label:inp?.value.trim()||'',value:ta?.value.trim()||''};}).filter(f=>f.label||f.value);
+  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:'',meanings,examples,fields};
+  await dbPut(entry);
+  if(editingId){const idx=allEntries.findIndex(e=>e.id===editingId);if(idx>=0)allEntries[idx]=entry;}
+  else{allEntries.push(entry);allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));}
+  onSearch(document.getElementById('searchInput').value);
+  closeModal('entryModal');
+  toast(editingId?'✓ Hasło zaktualizowane':'✓ Hasło dodane');
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportData(){
+  toast('Przygotowuję eksport…');
+  setTimeout(async()=>{
+    const all=await dbGetAll();
+    const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`slownik_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+    toast(`✓ Wyeksportowano ${all.length} haseł`);
+  },50);
+}
+function openImport(){document.getElementById('importText').value='';document.getElementById('importFile').value='';document.getElementById('importProgress').style.display='none';openModal('importModal');}
+function loadImportFile(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{document.getElementById('importText').value=e.target.result;};reader.readAsText(file);}
+async function doImport(){
+  const raw=document.getElementById('importText').value.trim();
+  if(!raw){toast('⚠ Wczytaj plik lub wklej dane JSON');return;}
+  let parsed;try{parsed=JSON.parse(raw);}catch(e){toast('⚠ Błąd formatu JSON');return;}
+  if(!Array.isArray(parsed)){toast('⚠ Dane muszą być tablicą []');return;}
+  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[]})).filter(e=>e.headword);
+  const mode=document.getElementById('importMode').value;
+  const prog=document.getElementById('importProgress');
+  const fill=document.getElementById('importFill');
+  const lbl=document.getElementById('importLabel');
+  prog.style.display='block';
+  if(mode==='replace'){lbl.textContent='Czyszczenie bazy…';await dbClear();allEntries=[];}
+  else{const existing=new Set(allEntries.map(e=>e.lang+'|'+e.headword.toLowerCase()));parsed=parsed.filter(e=>!existing.has(e.lang+'|'+e.headword.toLowerCase()));}
+  lbl.textContent=`Importowanie 0 / ${parsed.length}…`;
+  await dbBulkPut(parsed,(done,total)=>{fill.style.width=Math.round(done/total*100)+'%';lbl.textContent=`Importowanie ${done} / ${total}…`;});
+  allEntries=await dbGetAll();
+  allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));
+  prog.style.display='none';
+  onSearch(document.getElementById('searchInput').value);
+  closeModal('importModal');
+  toast(`✓ Zaimportowano ${parsed.length} haseł. Łącznie: ${allEntries.length}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST & KEYBOARD
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, duration=4000){
+  const t=document.getElementById('toast');
+  // Use simple text - click anywhere on toast to dismiss
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('detailModal').classList.contains('open')){closeDetailModal();return;}
+    ['entryModal','importModal','deleteModal'].forEach(id=>{if(document.getElementById(id).classList.contains('open'))closeModal(id);});
+    closePanel();
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();document.getElementById('searchInput').focus();}
+});
+
+// ═══════════════════════════════════════════════════════════
+// MERGE
+// ═══════════════════════════════════════════════════════════
+let mergeSelected = new Set();
+
+function openMergeMode() {
+  mergeSelected.clear();
+  // Pre-fill search and new headword from current search query
+  const currentQ = document.getElementById('searchInput').value.trim();
+  document.getElementById('mergeSearch').value = currentQ;
+  document.getElementById('mergeNewHw').value = currentQ;
+  document.getElementById('mergeNewLang').value = 'pl'; // default Polish for merged entries
+  document.getElementById('mergeSelCount').textContent = 'Zaznaczono: 0';
+  renderMergeList(currentQ);
+  document.getElementById('mergeModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('mergeNewHw').focus(), 150);
+}
+
+function closeToolModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderMergeList(q) {
+  const list = document.getElementById('mergeList');
+  const qlow = q.trim().toLowerCase();
+  // Show ALL matching or first 200 if no query
+  const items = qlow
+    ? allEntries.filter(e => {
+        // Search everywhere - same as main search
+        const fields = [
+          e.headword, e.translation, e.description,
+          ...(e.meanings||[]).map(m => m.text + ' ' + (m.translation||'')),
+          ...(e.examples||[]).map(ex => ex.text + ' ' + (ex.translation||''))
+        ];
+        return fields.some(f => f && f.toLowerCase().includes(qlow));
+      })
+    : allEntries.slice(0, 200);
+  
+  if (items.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:.88rem;">Brak wyników — wpisz inne słowo</div>';
+    return;
+  }
+  
+  list.innerHTML = items.map(e => `
+    <div class="merge-card ${mergeSelected.has(e.id)?'selected':''}" onclick="toggleMergeSelect('${e.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="flex:1;min-width:0;">
+          <div class="mc-hw">${esc(e.headword)}</div>
+          <div class="mc-tr">${esc(e.translation).slice(0,60)}${e.translation.length>60?'…':''}</div>
+          <div class="mc-lang">${LANG_LABELS[e.lang]||e.lang}</div>
+        </div>
+        <div style="font-size:1.2rem;flex-shrink:0;">${mergeSelected.has(e.id)?'✅':''}</div>
+      </div>
+    </div>`).join('');
+  
+  if (!qlow && allEntries.length > 200) {
+    list.innerHTML += `<div style="padding:10px;text-align:center;font-size:.78rem;color:var(--ink-faint);">Pokazano 200 z ${allEntries.length}. Wpisz frazę żeby zawęzić.</div>`;
+  }
+}
+
+function toggleMergeSelect(id) {
+  if (mergeSelected.has(id)) mergeSelected.delete(id);
+  else mergeSelected.add(id);
+  document.getElementById('mergeSelCount').textContent = `Zaznaczono: ${mergeSelected.size}`;
+  renderMergeList(document.getElementById('mergeSearch').value);
+}
+
+function clearMergeSelection() {
+  mergeSelected.clear();
+  document.getElementById('mergeSelCount').textContent = 'Zaznaczono: 0';
+  renderMergeList(document.getElementById('mergeSearch').value);
+}
+
+// Undo buffer for merge
+let mergeUndoBuffer = null;
+
+async function doMerge() {
+  if (mergeSelected.size < 2) { toast('⚠ Zaznacz co najmniej 2 hasła do scalenia'); return; }
+  
+  const newHw = document.getElementById('mergeNewHw').value.trim();
+  if (!newHw) { toast('⚠ Wpisz nazwę nowego hasła głównego'); document.getElementById('mergeNewHw').focus(); return; }
+  const newLang = document.getElementById('mergeNewLang').value;
+  
+  const ids = Array.from(mergeSelected);
+  const entries = ids.map(id => allEntries.find(e => e.id === id)).filter(Boolean);
+  if (entries.length < 2) return;
+  
+  // Save undo buffer
+  mergeUndoBuffer = entries.map(e => JSON.parse(JSON.stringify(e)));
+  
+  // Create brand new entry with user-defined headword
+  const newEntry = {
+    id: genId(),
+    lang: newLang,
+    headword: newHw,
+    translation: '',
+    description: '',
+    meanings: [],
+    examples: [],
+    fields: []
+  };
+  
+  // Add each selected entry as a meaning block
+  entries.forEach(e => {
+    // Main meaning: headword — translation
+    const meaningText = e.headword + (e.translation ? ' — ' + e.translation : '');
+    const meaning = {
+      text: meaningText,
+      translation: '',
+      examples: [...(e.examples||[])]
+    };
+    newEntry.meanings.push(meaning);
+    
+    // Add sub-meanings of this entry as additional meanings
+    (e.meanings||[]).forEach(m => {
+      newEntry.meanings.push({
+        text: '  ' + m.text,
+        translation: m.translation||'',
+        examples: m.examples||[]
+      });
+    });
+    
+    // Merge fields
+    newEntry.fields = [...newEntry.fields, ...(e.fields||[])];
+  });
+  
+  // Save new entry
+  await dbPut(newEntry);
+  
+  // Delete all original entries
+  for (const e of entries) {
+    await dbDelete(e.id);
+  }
+  
+  // Update cache
+  allEntries = allEntries.filter(e => !ids.includes(e.id));
+  allEntries.push(newEntry);
+  allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+  
+  mergeSelected.clear();
+  onSearch(newHw); // search for new entry
+  document.getElementById('searchInput').value = newHw;
+  closeToolModal('mergeModal');
+  toast(`✓ Scalono ${entries.length} haseł → "${newHw}". Kliknij ↩ żeby cofnąć.`, 10000);
+  showUndoBtn();
+}
+
+function showUndoBtn() {
+  let undoBtn = document.getElementById('undoBtn');
+  if (!undoBtn) {
+    undoBtn = document.createElement('button');
+    undoBtn.id = 'undoBtn';
+    undoBtn.innerHTML = '↩ Cofnij scalenie &nbsp;<span style="opacity:.6;font-size:.8rem;">✕</span>';
+    undoBtn.style.cssText = `
+      position:fixed;bottom:calc(120px + env(safe-area-inset-bottom));
+      left:50%;transform:translateX(-50%);
+      background:var(--accent);color:#fff;border:none;border-radius:6px;
+      padding:10px 20px;cursor:pointer;font-weight:600;font-size:.88rem;
+      box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:999;
+      font-family:'Source Sans 3',sans-serif;display:flex;align-items:center;gap:8px;
+    `;
+    undoBtn.onclick = (e) => {
+      // Click on X = just dismiss, click elsewhere = undo
+      if(e.target.tagName === 'SPAN'){
+        undoBtn.style.display='none';
+        mergeUndoBuffer=null;
+      } else {
+        undoMerge();
+      }
+    };
+    document.body.appendChild(undoBtn);
+  }
+  undoBtn.style.display = 'block';
+  // No timeout - stays until next merge or manual undo
+  clearTimeout(undoBtn._timer);
+}
+
+async function undoMerge() {
+  if (!mergeUndoBuffer || mergeUndoBuffer.length < 2) {
+    toast('⚠ Brak danych do cofnięcia'); return;
+  }
+  
+  // Restore all original entries
+  for (const e of mergeUndoBuffer) {
+    await dbPut(e);
+  }
+  
+  // Reload cache
+  allEntries = await dbGetAll();
+  allEntries.sort((a,b) => a.headword.localeCompare(b.headword, undefined, {sensitivity:'base'}));
+  
+  mergeUndoBuffer = null;
+  const btn = document.getElementById('undoBtn');
+  if (btn) btn.style.display = 'none';
+  
+  onSearch(document.getElementById('searchInput').value);
+  toast('✓ Scalenie cofnięte — przywrócono oryginalne hasła');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DUPLICATES
+// ═══════════════════════════════════════════════════════════
+function openDuplicates() {
+  document.getElementById('dupModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('dupSummary').textContent = 'Szukam duplikatów…';
+  document.getElementById('dupList').innerHTML = '';
+  setTimeout(findDuplicates, 50);
+}
+
+function findDuplicates() {
+  const groups = new Map();
+  
+  allEntries.forEach(e => {
+    // Normalize: lowercase, remove articles (en/et/ein), trim
+    const norm = e.headword.toLowerCase()
+      .replace(/^(en |et |ein |a |an |the )/i, '')
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+      .trim();
+    
+    if (!groups.has(norm)) groups.set(norm, []);
+    groups.get(norm).push(e);
+  });
+  
+  // Also find entries where one headword contains another
+  const dups = [];
+  groups.forEach((entries, key) => {
+    if (entries.length > 1) dups.push({key, entries, type: 'exact'});
+  });
+  
+  // Find near-duplicates (one starts with the other)
+  const keys = Array.from(groups.keys());
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = keys[i], b = keys[j];
+      if (a.length > 3 && b.length > 3) {
+        if (b.startsWith(a) || a.startsWith(b)) {
+          const entriesA = groups.get(a);
+          const entriesB = groups.get(b);
+          if (entriesA.length === 1 && entriesB.length === 1) {
+            dups.push({key: a + ' / ' + b, entries: [...entriesA, ...entriesB], type: 'similar'});
+          }
+        }
+      }
+    }
+  }
+  
+  // Limit to 100 groups
+  const limited = dups.slice(0, 100);
+  
+  const summary = document.getElementById('dupSummary');
+  const list = document.getElementById('dupList');
+  
+  if (limited.length === 0) {
+    summary.textContent = '✓ Nie znaleziono duplikatów!';
+    list.innerHTML = '';
+    return;
+  }
+  
+  summary.textContent = `Znaleziono ${dups.length} grup potencjalnych duplikatów${dups.length > 100 ? ' (pokazano 100)' : ''}. Kliknij "Edytuj" lub "Usuń" przy wybranych hasłach.`;
+  
+  list.innerHTML = limited.map(group => `
+    <div class="dup-item">
+      <div class="dup-head">${group.type === 'exact' ? '🔴 Identyczne' : '🟡 Podobne'}: „${esc(group.key)}" — ${group.entries.length} haseł</div>
+      ${group.entries.map(e => `
+        <div class="dup-entry">
+          <div style="flex:1;min-width:0;">
+            <div class="dup-hw">${esc(e.headword)}</div>
+            <div class="dup-tr">${esc(e.translation)}</div>
+            <div style="font-size:.68rem;color:var(--ink-faint);margin-top:2px;">${LANG_LABELS[e.lang]||e.lang}</div>
+          </div>
+          <div class="dup-btns">
+            <button class="iBtn" onclick="dupEdit('${e.id}')" title="Edytuj">✏️</button>
+            <button class="iBtn-danger" title="Przytrzymaj 1s żeby usunąć"
+            onmousedown="startHoldDelete('${e.id}',this,'${esc(e.headword)}')"
+            onmouseup="cancelHoldDelete()"
+            onmouseleave="cancelHoldDelete()"
+            ontouchstart="startHoldDelete('${e.id}',this,'${esc(e.headword)}')"
+            ontouchend="cancelHoldDelete()">🗑<span class="hold-progress"></span></button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function dupEdit(id) {
+  closeToolModal('dupModal');
+  openEdit(id);
+}
+
+function dupDelete(id, hw) {
+  if (!confirm(`Usunąć hasło „${hw}"?`)) return;
+  dbDelete(id).then(() => {
+    allEntries = allEntries.filter(e => e.id !== id);
+    filtered = filtered.filter(e => e.id !== id);
+    updateStats();
+    renderList();
+    findDuplicates(); // refresh list
+    toast('Hasło usunięte');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOLD TO DELETE
+// ═══════════════════════════════════════════════════════════
+let holdTimer = null;
+let holdId = null;
+
+function startHoldDelete(id, btn, hwOverride) {
+  holdId = id;
+  btn.classList.add('holding');
+  const prog = btn.querySelector('.hold-progress');
+  if (prog) prog.style.width = '100%';
+  
+  holdTimer = setTimeout(() => {
+    btn.classList.remove('holding');
+    if (prog) prog.style.width = '0%';
+    if (hwOverride) {
+      // From duplicates panel
+      if (confirm(`Usunąć hasło „${hwOverride}"?`)) {
+        dbDelete(id).then(() => {
+          allEntries = allEntries.filter(e => e.id !== id);
+          filtered = filtered.filter(e => e.id !== id);
+          updateStats(); renderList();
+          if (currentQuery) renderPanel();
+          findDuplicates();
+          toast('Hasło usunięte');
+        });
+      }
+    } else {
+      openDel(id);
+    }
+    holdId = null;
+  }, 1000);
+}
+
+function cancelHoldDelete() {
+  if (holdTimer) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+  }
+  // Reset all holding buttons
+  document.querySelectorAll('.iBtn-danger.holding').forEach(btn => {
+    btn.classList.remove('holding');
+    const prog = btn.querySelector('.hold-progress');
+    if (prog) prog.style.width = '0%';
+  });
+  holdId = null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH FILTERS
+// ═══════════════════════════════════════════════════════════
+let searchMode = 'all';      // 'all', 'exact', 'start'
+let activeLangs = new Set(); // empty = all languages
+
+function cycleSearchMode() {
+  const modes = ['all','exact','start'];
+  const labels = {'all':'🔍 Wszędzie','exact':'🎯 Dokładne','start':'▶ Zaczyna się'};
+  const idx = modes.indexOf(searchMode);
+  searchMode = modes[(idx+1) % modes.length];
+  const btn = document.getElementById('searchModeBtn');
+  if (btn) btn.textContent = labels[searchMode];
+  if (currentQuery) doSearch();
+}
+
+function setSearchMode(mode) {
+  searchMode = mode;
+  const labels = {'all':'🔍 Wszędzie','exact':'🎯 Dokładne','start':'▶ Zaczyna się'};
+  const btn = document.getElementById('searchModeBtn');
+  if (btn) btn.textContent = labels[mode];
+  if (currentQuery) doSearch();
+}
+
+let langMenuOpen = false;
+function toggleLangMenu() {
+  langMenuOpen = !langMenuOpen;
+  const dd = document.getElementById('langDropdown');
+  if (dd) dd.classList.toggle('open', langMenuOpen);
+}
+
+// Close lang menu when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('[onclick="toggleLangMenu()"]') && 
+      !e.target.closest('#langDropdown')) {
+    langMenuOpen = false;
+    const dd = document.getElementById('langDropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+function toggleLangFilter(lang) {
+  if (activeLangs.has(lang)) {
+    activeLangs.delete(lang);
+    const el = document.getElementById('lf-' + lang);
+    if (el) el.textContent = '○';
+  } else {
+    activeLangs.add(lang);
+    const el = document.getElementById('lf-' + lang);
+    if (el) el.textContent = '●';
+  }
+  // Update lang menu button to show active count
+  const btn = document.getElementById('langMenuBtn');
+  if (btn) btn.textContent = activeLangs.size > 0 ? `🌐(${activeLangs.size})▾` : '🌐▾';
+  onSearch(document.getElementById('searchInput').value);
+}
+
+function clearLangFilter() {
+  activeLangs.clear();
+  ['no','pl','ru','en','la','de'].forEach(l => {
+    const el = document.getElementById('lf-' + l);
+    if (el) el.textContent = '○';
+  });
+  const btn = document.getElementById('langMenuBtn');
+  if (btn) btn.textContent = '🌐▾';
+  onSearch(document.getElementById('searchInput').value);
+  toggleLangMenu();
+}
+
+function dismissToast(){
+  clearTimeout(toastTimer);
+  document.getElementById('toast').classList.remove('show');
+}
+
+function softRefresh(){
+  // Just re-render the list without clearing cache or reloading page
+  renderList();
+  if(currentQuery) renderPanel();
+  updateStats();
+  toast('✓ Widok odświeżony');
+}
+
+function hardRefresh(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      regs.forEach(reg=>reg.unregister());
+    });
+  }
+  // Clear caches
+  if('caches' in window){
+    caches.keys().then(keys=>{
+      keys.forEach(key=>caches.delete(key));
+    });
+  }
+  setTimeout(()=>window.location.reload(true), 300);
+}
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});}
+
+init().catch(err=>{
+  const c=document.getElementById('content');
+  if(c)c.innerHTML=`<div class="center-msg"><div class="ico">⚠️</div><p>Błąd inicjalizacji bazy danych.<br><small>${err.message}</small></p></div>`;
+});
+</script>
+</body>
+</html>
