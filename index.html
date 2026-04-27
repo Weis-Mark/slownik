@@ -380,9 +380,25 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 .lang-dropdown button:hover{background:rgba(255,255,255,.12);}
 
 /* TOAST */
-#toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:6px;font-size:.86rem;font-weight:600;z-index:999;transition:transform .28s ease, opacity .28s ease;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:grab;touch-action:pan-y;}
-#toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
-#toast.swiping{transition:none;}
+#toast{
+  position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--ink);color:var(--bg);
+  padding:11px 36px 11px 18px;border-radius:6px;
+  font-size:.86rem;font-weight:600;z-index:999;
+  transition:transform .28s ease;
+  white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);
+}
+#toast.show{transform:translateX(-50%) translateY(0);}
+#toast-close{
+  position:absolute;top:50%;right:8px;transform:translateY(-50%);
+  background:rgba(255,255,255,.2);border:none;color:#fff;
+  width:22px;height:22px;border-radius:50%;
+  cursor:pointer;font-size:.8rem;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#toast-close:hover{background:rgba(255,255,255,.35);}
 #sentinel{height:1px;}
 
 @media(max-width:768px){
@@ -641,7 +657,7 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast"><button id="toast-close" onclick="dismissToast()" title="Zamknij">✕</button><span id="toast-text"></span></div></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -1146,12 +1162,10 @@ async function doImport(){
 // ═══════════════════════════════════════════════════════════
 let toastTimer;
 function toast(msg, duration=4000){
-  const t=document.getElementById('toast');
-  // Use simple text - click anywhere on toast to dismiss
-  t.textContent=msg;
-  t.classList.add('show');
+  document.getElementById('toast-text').textContent = msg;
+  document.getElementById('toast').classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'), duration);
+  toastTimer = setTimeout(dismissToast, duration);
 }
 
 document.addEventListener('keydown',e=>{
@@ -1585,76 +1599,10 @@ function clearLangFilter() {
 
 function dismissToast(){
   clearTimeout(toastTimer);
-  const t = document.getElementById('toast');
-  t.classList.remove('show');
-  t.style.transform = '';
-  t.style.opacity = '';
+  document.getElementById('toast').classList.remove('show');
 }
 
-// Swipe to dismiss toast
-(function(){
-  let startY = 0, startX = 0, isDragging = false;
 
-  function getToast(){ return document.getElementById('toast'); }
-
-  function onStart(e){
-    const t = getToast();
-    if(!t.classList.contains('show')) return;
-    const pt = e.touches ? e.touches[0] : e;
-    startY = pt.clientY;
-    startX = pt.clientX;
-    isDragging = true;
-    t.classList.add('swiping');
-  }
-
-  function onMove(e){
-    if(!isDragging) return;
-    const t = getToast();
-    const pt = e.touches ? e.touches[0] : e;
-    const dy = pt.clientY - startY;
-    const dx = pt.clientX - startX;
-    // Only dismiss on downward swipe
-    if(dy > 0){
-      t.style.transform = `translateX(-50%) translateY(${dy}px)`;
-      t.style.opacity = Math.max(0, 1 - dy/80);
-      if(e.cancelable) e.preventDefault();
-    }
-  }
-
-  function onEnd(e){
-    if(!isDragging) return;
-    isDragging = false;
-    const t = getToast();
-    t.classList.remove('swiping');
-    const pt = e.changedTouches ? e.changedTouches[0] : e;
-    const dy = pt.clientY - startY;
-    if(dy > 40){
-      // Dismiss
-      dismissToast();
-    } else {
-      // Snap back
-      t.style.transform = '';
-      t.style.opacity = '';
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const t = document.getElementById('toast');
-    if(!t) return;
-    // Touch events
-    t.addEventListener('touchstart', onStart, {passive:true});
-    t.addEventListener('touchmove', onMove, {passive:false});
-    t.addEventListener('touchend', onEnd);
-    // Mouse events (desktop)
-    t.addEventListener('mousedown', onStart);
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onEnd);
-    // Click to dismiss on desktop
-    t.addEventListener('click', (e) => {
-      if(Math.abs(e.clientY - startY) < 5) dismissToast();
-    });
-  });
-})();
 
 function softRefresh(){
   // Just re-render the list without clearing cache or reloading page
