@@ -801,11 +801,28 @@ function matchEntry(e, q){
     // Hasło zaczyna się od szukanej frazy
     return hw.startsWith(q);
   } else {
-    // Wszędzie - standardowe wyszukiwanie
-    return [e.headword,e.translation,e.description,
-            ...(e.meanings||[]).map(m=>m.text),
-            ...(e.examples||[]).map(ex=>ex.text+' '+(ex.translation||''))
-           ].some(f=>f&&f.toLowerCase().includes(q));
+    // Wszędzie - pełne wyszukiwanie w głąb (znaczenia, ich przykłady, rubryki)
+    const parts = [e.headword, e.translation, e.description];
+    // Znaczenia + ich tłumaczenia + ich zagnieżdżone przykłady
+    (e.meanings||[]).forEach(m => {
+      parts.push(m.text);
+      parts.push(m.translation||'');
+      (m.examples||[]).forEach(ex => {
+        parts.push(ex.text);
+        parts.push(ex.translation||'');
+      });
+    });
+    // Przykłady na poziomie hasła
+    (e.examples||[]).forEach(ex => {
+      parts.push(ex.text);
+      parts.push(ex.translation||'');
+    });
+    // Własne rubryki
+    (e.fields||[]).forEach(f => {
+      parts.push(f.label||'');
+      parts.push(f.value||'');
+    });
+    return parts.some(f => f && f.toLowerCase().includes(q));
   }
 }
 function updateStats(){
