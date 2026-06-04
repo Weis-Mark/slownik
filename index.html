@@ -505,7 +505,7 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
       <div class="frow">
         <div class="fg" style="flex:2">
           <label class="fl">Hasło *</label>
-          <input class="fi" id="fHw" placeholder="np. en blamasje" autocomplete="off">
+          <input class="fi" id="fHw" placeholder="" autocomplete="off">
         </div>
         <div class="fg" style="flex:0 0 130px">
           <label class="fl">Język</label>
@@ -521,8 +521,8 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         </div>
       </div>
       <div class="fg">
-        <label class="fl">Tłumaczenie <span style="font-weight:300;text-transform:none;font-size:.75rem;">(opcjonalne)</span></label>
-        <input class="fi" id="fTr" placeholder="np. blamaż, wpadka, plama">
+        <label class="fl">Tłumaczenie</label>
+        <input class="fi" id="fTr" placeholder="">
       </div>
       <div class="fg">
         <div class="sec-lbl">Przykłady użycia <span style="font-weight:300;text-transform:none;font-size:.75rem;">(do tłumaczenia)</span></div>
@@ -535,7 +535,7 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         <button class="add-sub" onclick="addMeaning()" style="margin-top:6px;">＋ Dodaj znaczenie</button>
       </div>
       <div class="fg">
-        <div class="sec-lbl">Własne rubryki (np. odmiana, rodzaj, uwagi…)</div>
+        <div class="sec-lbl">Własne rubryki</div>
         <div class="sub-list" id="fieldsList"></div>
         <button class="add-sub" onclick="addCustomField()">＋ Dodaj rubrykę</button>
       </div>
@@ -1098,11 +1098,11 @@ function addExampleToMeaning(btn){
   exList.appendChild(row);
 }
 
-function addCustomField(label='',value=''){
+function addCustomField(label='verbbøyning',value=''){
   const div=document.createElement('div');div.className='sub-item';
   div.innerHTML=`<div class="sub-item-row" style="gap:6px;align-items:flex-start;">
-    <input type="text" class="fi" placeholder="Nazwa rubryki (np. odmiana)" style="flex:0 0 160px;min-width:0;font-size:.84rem;padding:6px 8px;" value="${esc(label)}">
-    <textarea placeholder="Treść…" style="flex:1;min-height:52px;">${esc(value)}</textarea>
+    <input type="text" class="fi" placeholder="" style="flex:0 0 160px;min-width:0;font-size:.84rem;padding:6px 8px;" value="${esc(label)}">
+    <textarea placeholder="" style="flex:1;min-height:52px;">${esc(value)}</textarea>
     <button class="sub-rm" onclick="this.closest('.sub-item').remove()">✕</button>
   </div>`;
   document.getElementById('fieldsList').appendChild(div);
