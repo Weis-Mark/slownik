@@ -160,6 +160,8 @@ header{
 .c-meanings{margin-top:9px;}
 .meaning{padding:5px 0 5px 14px;border-left:2px solid var(--line);margin-bottom:5px;font-size:.9rem;line-height:1.4;}
 .meaning-n{font-weight:700;color:var(--accent);font-size:.82rem;margin-right:3px;}
+.meaning-tr-disp{font-style:italic;color:var(--ink-soft);font-size:.86rem;margin-top:2px;padding-left:2px;}
+.detail-meaning-tr{font-style:italic;color:var(--ink-soft);font-size:.88rem;margin-top:3px;}
 .c-examples{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);}
 .example{font-size:.86rem;color:var(--ink-soft);margin-bottom:5px;padding-left:10px;border-left:3px solid var(--highlight);line-height:1.5;}
 .ex-tr{font-style:italic;color:var(--ink-faint);font-size:.82rem;}
@@ -895,7 +897,7 @@ function openDetail(id){
             `<div class="detail-example">${esc(ex.text)}${ex.translation?`<div class="detail-ex-tr">${esc(ex.translation)}</div>`:''}</div>`
           ).join('')}</div>`
         : '';
-      return `<div class="detail-meaning"><span class="detail-meaning-n">${i+1}.</span>${esc(m.text)}${mExs}</div>`;
+      return `<div class="detail-meaning"><span class="detail-meaning-n">${i+1}.</span>${esc(m.text)}${m.translation?`<div class="detail-meaning-tr">${esc(m.translation)}</div>`:''}${mExs}</div>`;
     }).join('');
   }
   if(e.examples&&e.examples.length>0){
@@ -952,7 +954,7 @@ function cardHtml(e){
             `<div class="meaning-ex-item">${hi(ex.text,q)}${ex.translation?`<div class="meaning-ex-tr">${hi(ex.translation,q)}</div>`:''}</div>`
           ).join('')}</div>`
         : '';
-      return `<div class="meaning-with-ex"><div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}</div>${mExamples}</div>`;
+      return `<div class="meaning-with-ex"><div class="meaning"><span class="meaning-n">${i+1}.</span>${hi(m.text,q)}${m.translation?`<div class="meaning-tr-disp">${hi(m.translation,q)}</div>`:''}</div>${mExamples}</div>`;
     }).join('')
   }</div>` : '';
   // Top-level examples (under translation)
@@ -1017,7 +1019,7 @@ function openEdit(id){
   // Load top-level examples
   (e.examples||[]).forEach(ex=>addTopExample(ex.text||'', ex.translation||''));
   // Load meanings with their examples
-  (e.meanings||[]).forEach(m=>addMeaning(m.text||'', m.examples||[]));
+  (e.meanings||[]).forEach(m=>addMeaning(m.text||'', m.examples||[], m.translation||''));
   document.getElementById('fieldsList').innerHTML='';
   (e.fields||[]).forEach(f=>addCustomField(f.label||'',f.value||''));
   openModal('entryModal');
@@ -1039,7 +1041,7 @@ async function confirmDelete(){
   }
 }
 function clearForm(){['fHw','fTr'].forEach(id=>document.getElementById(id).value='');document.getElementById('fLang').value='no';document.getElementById('meaningsList').innerHTML='';document.getElementById('topExamplesList').innerHTML='';document.getElementById('fieldsList').innerHTML='';}
-function addMeaning(text='', examples=[]){
+function addMeaning(text='', examples=[], translation=''){
   const list = document.getElementById('meaningsList');
   const num = list.querySelectorAll('.meaning-block').length + 1;
   const div = document.createElement('div');
@@ -1058,7 +1060,8 @@ function addMeaning(text='', examples=[]){
       <button class="sub-rm" onclick="this.closest('.meaning-block').remove();renumberMeanings()">✕ Usuń</button>
     </div>
     <div class="meaning-block-body">
-      <textarea placeholder="Treść znaczenia / definicja…" style="min-height:60px;">${esc(text)}</textarea>
+      <textarea class="meaning-text" placeholder="Treść znaczenia / definicja…" style="min-height:60px;">${esc(text)}</textarea>
+      <textarea class="meaning-tr" placeholder="Tłumaczenie znaczenia (opcjonalne)…" style="min-height:36px;">${esc(translation)}</textarea>
       <div class="meaning-examples">${exHtml}</div>
       <button class="add-example-btn" onclick="addExampleToMeaning(this)">＋ Dodaj przykład do tego znaczenia</button>
     </div>`;
@@ -1114,13 +1117,13 @@ async function saveEntry(){
   if(!hw){toast('⚠ Hasło jest wymagane');return;}
   // Read meanings with their examples
   const meanings = Array.from(document.querySelectorAll('#meaningsList .meaning-block')).map(block => {
-    const tas = block.querySelectorAll(':scope > .meaning-block-body > textarea');
-    const text = tas[0]?.value.trim() || '';
+    const text = block.querySelector(':scope > .meaning-block-body > .meaning-text')?.value.trim() || '';
+    const mtr = block.querySelector(':scope > .meaning-block-body > .meaning-tr')?.value.trim() || '';
     const examples = Array.from(block.querySelectorAll('.meaning-example-row')).map(row => {
       const rowTas = row.querySelectorAll('textarea');
       return {text: rowTas[0]?.value.trim()||'', translation: rowTas[1]?.value.trim()||''};
     }).filter(ex => ex.text);
-    return {text, translation:'', examples};
+    return {text, translation:mtr, examples};
   }).filter(m => m.text);
   // Read top-level examples (under translation)
   const examples = Array.from(document.querySelectorAll('#topExamplesList .meaning-example-row')).map(row=>{
