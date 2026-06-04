@@ -40,6 +40,7 @@ header{
 .hbtn{font-family:'Source Sans 3',sans-serif;font-size:0.75rem;font-weight:600;padding:6px 11px;border:none;border-radius:4px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .15s;}
 .hbtn-ghost{background:transparent;color:var(--bg);border:1px solid rgba(245,240,232,.35);}
 .hbtn-ghost:hover{background:rgba(245,240,232,.12);}
+.hbtn-ghost.active-filter{background:#3a8a3a;border-color:#3a8a3a;color:#fff;}
 
 /* SEARCH */
 .search-bar{
@@ -153,6 +154,11 @@ header{
 .card-actions{display:flex;gap:5px;}
 .iBtn{background:none;border:1px solid var(--line);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:.82rem;color:var(--ink-soft);transition:all .15s;}
 .iBtn:hover{background:var(--bg);border-color:var(--accent);color:var(--accent);}
+.iBtn-check{background:none;border:1px solid var(--line);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:.82rem;color:var(--ink-faint);transition:all .15s;}
+.iBtn-check:hover{background:var(--bg);border-color:#3a8a3a;color:#3a8a3a;}
+.iBtn-check.checked{background:#e6f4e6;border-color:#3a8a3a;color:#2e7d2e;}
+.card.is-checked{border-left:3px solid #3a8a3a;}
+.card-check-badge{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#2e7d2e;background:#e6f4e6;padding:1px 6px;border-radius:10px;margin-top:2px;}
 .card-body{padding:0 14px 12px;border-top:1px solid var(--line);display:none;animation:slideDown .18s ease;}
 .card-body.open{display:block;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
@@ -433,6 +439,7 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         <button onclick="clearLangFilter()" style="border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:8px;opacity:.7;">✕ Wyczyść</button>
       </div>
     </div>
+    <button class="hbtn hbtn-ghost" id="uncheckedBtn" onclick="toggleUncheckedFilter()" title="Pokaż tylko niesprawdzone">☐ Niesprawdzone</button>
     <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓</button>
     <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Duplikaty">Dup.</button>
     <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
@@ -762,6 +769,11 @@ function onSearch(q){
     results = results.filter(e => activeLangs.has(e.lang));
   }
   
+  // Apply "only unchecked" filter
+  if (showOnlyUnchecked) {
+    results = results.filter(e => !e.checked);
+  }
+  
   // Apply text search
   if (currentQuery) {
     results = results.filter(e => matchEntry(e, currentQuery));
@@ -770,8 +782,8 @@ function onSearch(q){
   filtered = results;
   updateStats();
   renderList();
-  if((currentQuery||activeLangs.size>0)&&filtered.length>0)openPanel();
-  else if(!currentQuery&&activeLangs.size===0)closePanel();
+  if((currentQuery||activeLangs.size>0||showOnlyUnchecked)&&filtered.length>0)openPanel();
+  else if(!currentQuery&&activeLangs.size===0&&!showOnlyUnchecked)closePanel();
 }
 
 function clearSearch(){
@@ -828,9 +840,10 @@ function matchEntry(e, q){
   }
 }
 function updateStats(){
-  document.getElementById('statsTotal').textContent=`Łącznie: ${allEntries.length} haseł`;
+  const checkedCount = allEntries.filter(e => e.checked).length;
+  document.getElementById('statsTotal').textContent=`Łącznie: ${allEntries.length} haseł · sprawdzone: ${checkedCount}`;
   const sf=document.getElementById('stats-found');
-  if(currentQuery){sf.textContent=`Znaleziono: ${filtered.length}`;sf.style.display='inline';}
+  if(currentQuery||showOnlyUnchecked){sf.textContent=`Znaleziono: ${filtered.length}`;sf.style.display='inline';}
   else sf.style.display='none';
 }
 
@@ -962,7 +975,7 @@ function cardHtml(e){
   const hasFields=e.fields&&e.fields.length>0;
   const fieldsHtml=hasFields?`<div class="c-fields" style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">${e.fields.map(f=>`<div class="custom-field"><div class="cf-label">${esc(f.label)}</div><div class="cf-value">${esc(f.value)}</div></div>`).join('')}</div>`:'';
   const bodyHtml=(hasBody||hasFields)?`<div class="card-body" id="b-${e.id}">${e.description?`<div class="c-desc">(${hi(e.description,q)})</div>`:''}${meaningsHtml}${examplesHtml}${fieldsHtml}</div>`:'';
-  return `<div class="card" id="c-${e.id}">
+  return `<div class="card${e.checked?' is-checked':''}" id="c-${e.id}">
     <div class="card-head" onclick="${hasBody?`toggleBody('${e.id}')`:''}" style="${!hasBody?'cursor:default':''}">
       <div style="flex:1;min-width:0">
         <div class="card-hw">${hi(e.headword,q)}</div>
@@ -970,7 +983,9 @@ function cardHtml(e){
       </div>
       <div class="card-meta">
         <span class="lang-badge">${lang}</span>
+        ${e.checked?'<span class="card-check-badge">✓ sprawdzone</span>':''}
         <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="iBtn-check${e.checked?' checked':''}" onclick="toggleChecked('${e.id}')" title="${e.checked?'Oznacz jako niesprawdzone':'Oznacz jako sprawdzone'}">✓</button>
           <button class="iBtn" onclick="openDetail('${e.id}')" title="Szczegóły">👁</button>
           <button class="iBtn" onclick="openEdit('${e.id}')" title="Edytuj">✏️</button>
           <button class="iBtn-danger" title="Przytrzymaj 1s żeby usunąć" 
@@ -986,6 +1001,34 @@ function cardHtml(e){
   </div>`;
 }
 function toggleBody(id){const el=document.getElementById('b-'+id);if(el)el.classList.toggle('open');}
+
+async function toggleChecked(id){
+  const e = allEntries.find(x => x.id === id);
+  if(!e) return;
+  e.checked = !e.checked;
+  try {
+    await dbPut(e);
+  } catch(err) {
+    e.checked = !e.checked; // revert on failure
+    toast('⚠ Błąd zapisu znacznika');
+    return;
+  }
+  // If "only unchecked" filter is active and we just checked it, remove from view
+  if(showOnlyUnchecked && e.checked){
+    filtered = filtered.filter(x => x.id !== id);
+    renderList();
+    if(currentQuery||activeLangs.size>0||showOnlyUnchecked) renderPanel();
+  } else {
+    // Just re-render this card in place
+    const card = document.getElementById('c-'+id);
+    if(card){
+      const tmp = document.createElement('div');
+      tmp.innerHTML = cardHtml(e);
+      card.replaceWith(tmp.firstElementChild);
+    }
+  }
+  updateStats();
+}
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -1131,7 +1174,8 @@ async function saveEntry(){
     return {text: tas[0]?.value.trim()||'', translation: tas[1]?.value.trim()||''};
   }).filter(ex=>ex.text);
   const fields=Array.from(document.querySelectorAll('#fieldsList .sub-item')).map(item=>{const inp=item.querySelector('input[type=text]');const ta=item.querySelector('textarea');return{label:inp?.value.trim()||'',value:ta?.value.trim()||''};}).filter(f=>f.label||f.value);
-  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:'',meanings,examples,fields};
+  const prevChecked = editingId ? (allEntries.find(e=>e.id===editingId)?.checked || false) : false;
+  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:'',meanings,examples,fields,checked:prevChecked};
   await dbPut(entry);
   if(editingId){const idx=allEntries.findIndex(e=>e.id===editingId);if(idx>=0)allEntries[idx]=entry;}
   else{allEntries.push(entry);allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));}
@@ -1160,7 +1204,7 @@ async function doImport(){
   if(!raw){toast('⚠ Wczytaj plik lub wklej dane JSON');return;}
   let parsed;try{parsed=JSON.parse(raw);}catch(e){toast('⚠ Błąd formatu JSON');return;}
   if(!Array.isArray(parsed)){toast('⚠ Dane muszą być tablicą []');return;}
-  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[]})).filter(e=>e.headword);
+  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[],checked:e.checked||false})).filter(e=>e.headword);
   const mode=document.getElementById('importMode').value;
   const prog=document.getElementById('importProgress');
   const fill=document.getElementById('importFill');
@@ -1554,6 +1598,14 @@ function cancelHoldDelete() {
 // ═══════════════════════════════════════════════════════════
 let searchMode = 'all';      // 'all', 'exact', 'start'
 let activeLangs = new Set(); // empty = all languages
+let showOnlyUnchecked = false;
+
+function toggleUncheckedFilter(){
+  showOnlyUnchecked = !showOnlyUnchecked;
+  const btn = document.getElementById('uncheckedBtn');
+  if(btn) btn.classList.toggle('active-filter', showOnlyUnchecked);
+  onSearch(document.getElementById('searchInput').value);
+}
 
 function cycleSearchMode() {
   const modes = ['all','exact','start'];
