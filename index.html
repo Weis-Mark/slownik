@@ -415,6 +415,9 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
   .frow{flex-direction:column;}
   #content.shifted{margin-left:0;}
   .side-panel{width:88vw;max-width:360px;}
+  .h-btns{gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .h-btns::-webkit-scrollbar{display:none;}
+  .hbtn{padding:6px 8px;font-size:0.7rem;}
 }
 </style>
 </head>
@@ -439,11 +442,11 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         <button onclick="clearLangFilter()" style="border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:8px;opacity:.7;">✕ Wyczyść</button>
       </div>
     </div>
-    <button class="hbtn hbtn-ghost" id="uncheckedBtn" onclick="toggleUncheckedFilter()" title="Pokaż tylko niesprawdzone">☐ Niesprawdzone</button>
+    <button class="hbtn hbtn-ghost" id="uncheckedBtn" onclick="toggleUncheckedFilter()" title="Pokaż tylko niesprawdzone">✓ Niespr.</button>
     <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓</button>
     <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Duplikaty">Dup.</button>
-    <button class="hbtn hbtn-ghost" onclick="openImport()">Import</button>
-    <button class="hbtn hbtn-ghost" onclick="exportData()">Eksport</button>
+    <button class="hbtn hbtn-ghost" onclick="openImport()" title="Import">↓ Imp.</button>
+    <button class="hbtn hbtn-ghost" onclick="exportData()" title="Eksport">↑ Eksp.</button>
     <button class="hbtn hbtn-ghost" onclick="softRefresh()" title="Odśwież widok (bez internetu)">↺</button>
     <button class="hbtn hbtn-ghost" onclick="hardRefresh()" title="Pełne odświeżenie (wymaga internetu)">🔄</button>
   </div>
@@ -1603,7 +1606,10 @@ let showOnlyUnchecked = false;
 function toggleUncheckedFilter(){
   showOnlyUnchecked = !showOnlyUnchecked;
   const btn = document.getElementById('uncheckedBtn');
-  if(btn) btn.classList.toggle('active-filter', showOnlyUnchecked);
+  if(btn){
+    btn.classList.toggle('active-filter', showOnlyUnchecked);
+    btn.textContent = showOnlyUnchecked ? '✓ Tylko niespr.' : '✓ Niespr.';
+  }
   onSearch(document.getElementById('searchInput').value);
 }
 
