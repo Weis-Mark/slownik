@@ -225,7 +225,7 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 .fab:hover{background:var(--accent2);transform:scale(1.06);}
 
 /* MODALS */
-.overlay{display:none;position:fixed;inset:0;background:rgba(26,18,8,.58);z-index:200;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,18,8,.58);z-index:260;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
 .overlay.open{display:flex;}
 .modal{background:var(--paper);border-radius:10px;width:100%;max-width:640px;box-shadow:0 8px 32px rgba(0,0,0,.3);overflow:hidden;margin-top:8px;}
 .m-head{background:var(--ink);color:var(--bg);padding:15px 18px;display:flex;justify-content:space-between;align-items:center;}
@@ -722,6 +722,7 @@ async function dbBulkPut(entries,onProgress){
 // ═══════════════════════════════════════════════════════════
 let allEntries=[], filtered=[], currentQuery='';
 let editingId=null, deleteId=null, detailId=null;
+let dupEditId=null;
 let renderCount=50;
 const PAGE_SIZE=30;
 const LANG_LABELS={no:'Norweski',pl:'Polski',en:'Angielski',de:'Niemiecki',la:'Łacina',ru:'Rosyjski',es:'Hiszpański'};
@@ -1073,6 +1074,7 @@ document.getElementById('detailModal').addEventListener('click',e=>{if(e.target=
 function openAdd(){editingId=null;document.getElementById('modalTitle').textContent='Nowe hasło';clearForm();openModal('entryModal');setTimeout(()=>document.getElementById('fHw').focus(),120);}
 function openEdit(id){
   const e=allEntries.find(x=>x.id===id);if(!e)return;
+  dupEditId=null;
   editingId=id;
   document.getElementById('modalTitle').textContent='Edytuj hasło';
   document.getElementById('fHw').value=e.headword||'';
@@ -1202,6 +1204,13 @@ async function saveEntry(){
   else{allEntries.push(entry);allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));}
   onSearch(document.getElementById('searchInput').value);
   closeModal('entryModal');
+  // Jeśli edycja pochodziła z listy duplikatów — odśwież wiersz, lista zostaje otwarta
+  if(dupEditId){
+    if(document.getElementById('dupModal').classList.contains('open')){
+      refreshDupRowById(dupEditId);
+    }
+    dupEditId=null;
+  }
   toast(editingId?'✓ Hasło zaktualizowane':'✓ Hasło dodane');
 }
 
@@ -1578,7 +1587,7 @@ function findDuplicates() {
     <div class="dup-item">
       <div class="dup-head">${group.type === 'exact' ? '🔴 Identyczne' : '🟡 Podobne'}: „${esc(group.key)}" — ${group.entries.length} haseł</div>
       ${group.entries.map(e => `
-        <div class="dup-entry">
+        <div class="dup-entry" data-id="${e.id}">
           <div style="flex:1;min-width:0;">
             <div class="dup-hw">${esc(e.headword)}</div>
             <div class="dup-tr">${esc(e.translation)}</div>
@@ -1597,9 +1606,39 @@ function findDuplicates() {
     </div>`).join('');
 }
 
+// Usuń wiersz duplikatu z DOM w miejscu (bez przebudowy całej listy)
+function removeDupRowById(id){
+  const row=document.querySelector(`.dup-entry[data-id="${id}"]`);
+  if(!row) return;
+  const item=row.closest('.dup-item');
+  row.remove();
+  if(item){
+    const remaining=item.querySelectorAll('.dup-entry');
+    if(remaining.length<2){
+      // grupa przestała być duplikatem — usuń cały blok grupy
+      item.remove();
+    }else{
+      // zaktualizuj licznik w nagłówku grupy
+      const head=item.querySelector('.dup-head');
+      if(head) head.textContent=head.textContent.replace(/—\s*\d+\s*haseł/, `— ${remaining.length} haseł`);
+    }
+  }
+}
+
+// Odśwież tekst wiersza po edycji (gdyby zmieniła się nazwa/tłumaczenie)
+function refreshDupRowById(id){
+  const row=document.querySelector(`.dup-entry[data-id="${id}"]`);
+  if(!row) return;
+  const e=allEntries.find(x=>x.id===id);
+  if(!e){removeDupRowById(id);return;}
+  const hw=row.querySelector('.dup-hw'); if(hw) hw.textContent=e.headword;
+  const tr=row.querySelector('.dup-tr'); if(tr) tr.textContent=e.translation;
+}
+
 function dupEdit(id) {
-  closeToolModal('dupModal');
+  // NIE zamykaj listy duplikatów — otwórz edycję na wierzchu, po zapisie wróć do listy
   openEdit(id);
+  dupEditId=id;
 }
 
 function dupDelete(id, hw) {
@@ -1609,7 +1648,7 @@ function dupDelete(id, hw) {
     filtered = filtered.filter(e => e.id !== id);
     updateStats();
     renderList();
-    findDuplicates(); // refresh list
+    removeDupRowById(id); // usuń w miejscu, lista zostaje
     toast('Hasło usunięte');
   });
 }
@@ -1637,7 +1676,7 @@ function startHoldDelete(id, btn, hwOverride) {
           filtered = filtered.filter(e => e.id !== id);
           updateStats(); renderList();
           if (currentQuery) renderPanel();
-          findDuplicates();
+          removeDupRowById(id); // usuń w miejscu — lista zostaje na ekranie
           toast('Hasło usunięte');
         });
       }
