@@ -845,9 +845,23 @@ function matchEntry(e, q){
     return parts.some(f => f && f.toLowerCase().includes(q));
   }
 }
+function lastImportLabel(){
+  try{
+    const raw=localStorage.getItem('slownik_last_import');
+    if(!raw) return '';
+    const info=JSON.parse(raw);
+    let when='';
+    if(info.when){
+      const d=new Date(info.when);
+      when=d.toLocaleDateString('pl-PL')+' '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    }
+    const what=info.exported?'ostatni eksport':'ostatni import';
+    return ` · ${what}: ${info.name}${when?` (${when})`:''}`;
+  }catch(err){return '';}
+}
 function updateStats(){
   const checkedCount = allEntries.filter(e => e.checked).length;
-  document.getElementById('statsTotal').textContent=`Łącznie: ${allEntries.length} haseł · sprawdzone: ${checkedCount}`;
+  document.getElementById('statsTotal').textContent=`Łącznie: ${allEntries.length} haseł · sprawdzone: ${checkedCount}${lastImportLabel()}`;
   const sf=document.getElementById('stats-found');
   if(currentQuery||showOnlyUnchecked){sf.textContent=`Znaleziono: ${filtered.length}`;sf.style.display='inline';}
   else sf.style.display='none';
@@ -1199,12 +1213,19 @@ function exportData(){
     const all=await dbGetAll();
     const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`slownik_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+    const fname=`slownik_${new Date().toISOString().slice(0,10)}`;
+    const a=document.createElement('a');a.href=url;a.download=fname+'.json';a.click();URL.revokeObjectURL(url);
+    // Zapisz info o ostatnim eksporcie (ta wersja jest aktualna na tym urządzeniu)
+    try{
+      localStorage.setItem('slownik_last_import', JSON.stringify({name:fname, when:new Date().toISOString(), exported:true}));
+    }catch(err){}
+    updateStats();
     toast(`✓ Wyeksportowano ${all.length} haseł`);
   },50);
 }
 function openImport(){document.getElementById('importText').value='';document.getElementById('importFile').value='';document.getElementById('importProgress').style.display='none';openModal('importModal');}
-function loadImportFile(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{document.getElementById('importText').value=e.target.result;};reader.readAsText(file);}
+let lastImportFileName = '';
+function loadImportFile(input){const file=input.files[0];if(!file)return;lastImportFileName=file.name.replace(/\.json$/i,'');const reader=new FileReader();reader.onload=e=>{document.getElementById('importText').value=e.target.result;};reader.readAsText(file);}
 async function doImport(){
   const raw=document.getElementById('importText').value.trim();
   if(!raw){toast('⚠ Wczytaj plik lub wklej dane JSON');return;}
@@ -1223,6 +1244,11 @@ async function doImport(){
   allEntries=await dbGetAll();
   allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));
   prog.style.display='none';
+  // Zapisz informację o ostatnim imporcie (nazwa pliku + data)
+  try{
+    const info={name:lastImportFileName||'(wklejone dane)', when:new Date().toISOString()};
+    localStorage.setItem('slownik_last_import', JSON.stringify(info));
+  }catch(err){}
   onSearch(document.getElementById('searchInput').value);
   closeModal('importModal');
   toast(`✓ Zaimportowano ${parsed.length} haseł. Łącznie: ${allEntries.length}`);
