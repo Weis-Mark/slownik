@@ -1213,14 +1213,19 @@ function exportData(){
     const all=await dbGetAll();
     const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
-    const fname=`slownik_${new Date().toISOString().slice(0,10)}`;
+    // Nazwa unikalna: data_godzina-minuta + liczba sprawdzonych (łatwo poznać najnowszy plik)
+    const now=new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const stamp=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const checkedCount=all.filter(e=>e.checked).length;
+    const fname=`slownik_${stamp}_spr${checkedCount}`;
     const a=document.createElement('a');a.href=url;a.download=fname+'.json';a.click();URL.revokeObjectURL(url);
     // Zapisz info o ostatnim eksporcie (ta wersja jest aktualna na tym urządzeniu)
     try{
-      localStorage.setItem('slownik_last_import', JSON.stringify({name:fname, when:new Date().toISOString(), exported:true}));
+      localStorage.setItem('slownik_last_import', JSON.stringify({name:fname, when:now.toISOString(), exported:true}));
     }catch(err){}
     updateStats();
-    toast(`✓ Wyeksportowano ${all.length} haseł`);
+    toast(`✓ Wyeksportowano ${all.length} haseł (sprawdzone: ${checkedCount})`);
   },50);
 }
 function openImport(){document.getElementById('importText').value='';document.getElementById('importFile').value='';document.getElementById('importProgress').style.display='none';openModal('importModal');}
@@ -1251,7 +1256,8 @@ async function doImport(){
   }catch(err){}
   onSearch(document.getElementById('searchInput').value);
   closeModal('importModal');
-  toast(`✓ Zaimportowano ${parsed.length} haseł. Łącznie: ${allEntries.length}`);
+  const impChecked=allEntries.filter(e=>e.checked).length;
+  toast(`✓ Zaimportowano. Łącznie: ${allEntries.length} · sprawdzone: ${impChecked}`, 6000);
 }
 
 // ═══════════════════════════════════════════════════════════
