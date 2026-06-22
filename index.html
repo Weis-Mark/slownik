@@ -583,8 +583,8 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
       <div class="fg">
         <label class="fl">Tryb importu</label>
         <select class="fsel" id="importMode">
-          <option value="merge">Scal — zachowaj istniejące + dodaj nowe</option>
-          <option value="replace">Zastąp wszystko (uwaga: usunie obecne hasła!)</option>
+          <option value="replace">Zastąp wszystko (zalecane dla pełnej kopii)</option>
+          <option value="merge">Scal — zachowaj istniejące + dodaj tylko nowe</option>
         </select>
       </div>
       <div id="importProgress" style="display:none;margin-top:10px;">
@@ -1266,7 +1266,15 @@ async function doImport(){
   const lbl=document.getElementById('importLabel');
   prog.style.display='block';
   if(mode==='replace'){lbl.textContent='Czyszczenie bazy…';await dbClear();allEntries=[];}
-  else{const existing=new Set(allEntries.map(e=>e.lang+'|'+e.headword.toLowerCase()));parsed=parsed.filter(e=>!existing.has(e.lang+'|'+e.headword.toLowerCase()));}
+  else{
+    // Rozpoznaj te same hasła po id ORAZ po znormalizowanej nazwie (bez spacji, wielkość liter)
+    const existingIds=new Set(allEntries.map(e=>e.id));
+    const existingKeys=new Set(allEntries.map(e=>e.lang+'|'+(e.headword||'').trim().toLowerCase()));
+    parsed=parsed.filter(e=>{
+      const key=e.lang+'|'+(e.headword||'').trim().toLowerCase();
+      return !existingIds.has(e.id) && !existingKeys.has(key);
+    });
+  }
   lbl.textContent=`Importowanie 0 / ${parsed.length}…`;
   await dbBulkPut(parsed,(done,total)=>{fill.style.width=Math.round(done/total*100)+'%';lbl.textContent=`Importowanie ${done} / ${total}…`;});
   allEntries=await dbGetAll();
