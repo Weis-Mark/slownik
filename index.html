@@ -722,7 +722,7 @@ async function dbBulkPut(entries,onProgress){
 // ═══════════════════════════════════════════════════════════
 let allEntries=[], filtered=[], currentQuery='';
 let editingId=null, deleteId=null, detailId=null;
-let dupEditId=null;
+let dupEditId=null, detailFromDup=false;
 let renderCount=50;
 const PAGE_SIZE=30;
 const LANG_LABELS={no:'Norweski',pl:'Polski',en:'Angielski',de:'Niemiecki',la:'Łacina',ru:'Rosyjski',es:'Hiszpański'};
@@ -913,11 +913,13 @@ function openDetail(id){
   const e=allEntries.find(x=>x.id===id);
   if(!e)return;
   detailId=id;
-  // highlight active in panel
-  document.querySelectorAll('.panel-item').forEach(el=>el.classList.remove('active'));
-  const items=document.querySelectorAll('.panel-item');
-  items.forEach(el=>{if(el.onclick.toString().includes(id))el.classList.add('active');});
-  renderPanel(); // re-render to update active state
+  if(!detailFromDup){
+    // highlight active in panel (pomijane przy podglądzie z listy duplikatów)
+    document.querySelectorAll('.panel-item').forEach(el=>el.classList.remove('active'));
+    const items=document.querySelectorAll('.panel-item');
+    items.forEach(el=>{if(el.onclick.toString().includes(id))el.classList.add('active');});
+    renderPanel(); // re-render to update active state
+  }
 
   document.getElementById('detailHw').textContent=e.headword;
   document.getElementById('detailLang').textContent=LANG_LABELS[e.lang]||e.lang;
@@ -949,13 +951,21 @@ function openDetail(id){
 }
 function closeDetailModal(){
   document.getElementById('detailModal').classList.remove('open');
-  document.body.style.overflow='';
   detailId=null;
+  // Jeśli podgląd był z listy duplikatów i ta lista jest nadal otwarta — zachowaj blokadę przewijania tła
+  if(detailFromDup && document.getElementById('dupModal').classList.contains('open')){
+    detailFromDup=false;
+  }else{
+    document.body.style.overflow='';
+    detailFromDup=false;
+  }
 }
 function editFromDetail(){
   const id=detailId;
+  const fromDup=detailFromDup;
   closeDetailModal();
   openEdit(id);
+  if(fromDup) dupEditId=id; // po zapisie odśwież wiersz na liście duplikatów
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1588,8 +1598,8 @@ function findDuplicates() {
       <div class="dup-head">${group.type === 'exact' ? '🔴 Identyczne' : '🟡 Podobne'}: „${esc(group.key)}" — ${group.entries.length} haseł</div>
       ${group.entries.map(e => `
         <div class="dup-entry" data-id="${e.id}">
-          <div style="flex:1;min-width:0;">
-            <div class="dup-hw">${esc(e.headword)}</div>
+          <div style="flex:1;min-width:0;cursor:pointer;" onclick="dupPreview('${e.id}')" title="Kliknij, aby zobaczyć pełną treść">
+            <div class="dup-hw">${esc(e.headword)} <span style="font-size:.7rem;color:var(--accent2);font-weight:400;">👁</span></div>
             <div class="dup-tr">${esc(e.translation)}</div>
             <div style="font-size:.68rem;color:var(--ink-faint);margin-top:2px;">${LANG_LABELS[e.lang]||e.lang}</div>
           </div>
@@ -1635,6 +1645,10 @@ function refreshDupRowById(id){
   const tr=row.querySelector('.dup-tr'); if(tr) tr.textContent=e.translation;
 }
 
+function dupPreview(id){
+  detailFromDup=true;
+  openDetail(id);
+}
 function dupEdit(id) {
   // NIE zamykaj listy duplikatów — otwórz edycję na wierzchu, po zapisie wróć do listy
   openEdit(id);
