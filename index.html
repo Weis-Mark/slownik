@@ -574,9 +574,10 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
         <label class="fl">Wczytaj plik JSON</label>
         <input type="file" id="importFile" accept=".json" onchange="loadImportFile(this)" style="font-size:.9rem;padding:6px 0;">
         <p class="hint">Wybierz plik JSON wyeksportowany z tej aplikacji lub z innego urządzenia.</p>
+        <div id="importFileStatus" style="display:none;font-size:.85rem;color:var(--accent);font-weight:600;margin-top:4px;padding:6px 10px;background:var(--bg);border-radius:5px;"></div>
       </div>
       <div class="fg">
-        <label class="fl">Lub wklej dane JSON</label>
+        <label class="fl">Lub wklej dane JSON <span style="font-weight:300;text-transform:none;font-size:.75rem;">(tylko małe fragmenty)</span></label>
         <textarea class="imp-area" id="importText" placeholder='[{"headword":"en blamasje","lang":"no","translation":"blamaż","description":"","meanings":[],"examples":[]}]'></textarea>
       </div>
       <div class="fg">
@@ -1228,13 +1229,35 @@ function exportData(){
     toast(`✓ Wyeksportowano ${all.length} haseł (sprawdzone: ${checkedCount})`);
   },50);
 }
-function openImport(){document.getElementById('importText').value='';document.getElementById('importFile').value='';document.getElementById('importProgress').style.display='none';openModal('importModal');}
+function openImport(){importFileData=null;lastImportFileName='';document.getElementById('importText').value='';document.getElementById('importFile').value='';document.getElementById('importProgress').style.display='none';const st=document.getElementById('importFileStatus');if(st){st.style.display='none';st.textContent='';}openModal('importModal');}
 let lastImportFileName = '';
-function loadImportFile(input){const file=input.files[0];if(!file)return;lastImportFileName=file.name.replace(/\.json$/i,'');const reader=new FileReader();reader.onload=e=>{document.getElementById('importText').value=e.target.result;};reader.readAsText(file);}
+let importFileData = null;
+function loadImportFile(input){
+  const file=input.files[0];
+  if(!file)return;
+  lastImportFileName=file.name.replace(/\.json$/i,'');
+  const sizeMB=(file.size/1024/1024).toFixed(1);
+  const status=document.getElementById('importFileStatus');
+  if(status){status.style.display='block';status.textContent=`Wczytywanie pliku „${file.name}" (${sizeMB} MB)…`;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    // NIE wstawiamy do pola tekstowego (duże pliki zawieszają telefon) — trzymamy w pamięci
+    importFileData=e.target.result;
+    if(status)status.textContent=`✓ Gotowe do importu: „${file.name}" (${sizeMB} MB). Wybierz tryb i kliknij Importuj.`;
+  };
+  reader.onerror=()=>{if(status)status.textContent='⚠ Błąd odczytu pliku.';};
+  reader.readAsText(file);
+}
 async function doImport(){
-  const raw=document.getElementById('importText').value.trim();
+  // Preferuj dane z pliku (duże), pole tekstowe tylko dla ręcznie wklejanych danych
+  let raw = importFileData;
+  if(!raw){
+    raw = document.getElementById('importText').value.trim();
+  }
   if(!raw){toast('⚠ Wczytaj plik lub wklej dane JSON');return;}
-  let parsed;try{parsed=JSON.parse(raw);}catch(e){toast('⚠ Błąd formatu JSON');return;}
+  let parsed;
+  try{parsed=JSON.parse(raw);}catch(e){toast('⚠ Błąd formatu JSON');return;}
+  raw=null; importFileData=null; // zwolnij pamięć po sparsowaniu
   if(!Array.isArray(parsed)){toast('⚠ Dane muszą być tablicą []');return;}
   parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[],checked:e.checked||false})).filter(e=>e.headword);
   const mode=document.getElementById('importMode').value;
