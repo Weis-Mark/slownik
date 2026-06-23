@@ -281,7 +281,11 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
 .merge-card .mc-tr{font-size:.85rem;color:var(--ink-soft);margin-top:2px;}
 .merge-card .mc-lang{font-size:.68rem;text-transform:uppercase;color:var(--ink-faint);margin-top:2px;}
 .dup-item{background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-bottom:12px;overflow:hidden;}
-.dup-head{background:var(--highlight);padding:8px 14px;font-size:.8rem;font-weight:600;color:var(--accent);border-bottom:1px solid var(--line);}
+.dup-head{background:var(--highlight);padding:8px 14px;font-size:.8rem;font-weight:600;color:var(--accent);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.dup-merge-group-btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif;white-space:nowrap;flex-shrink:0;}
+.dup-merge-group-btn:hover{opacity:.85;}
+.dup-merge-all-btn{background:#a83232;color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif;margin-left:8px;white-space:nowrap;}
+.dup-merge-all-btn:hover{opacity:.85;}
 .dup-entry{padding:9px 14px;border-bottom:1px solid rgba(216,207,192,.4);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
 .dup-entry:last-child{border-bottom:none;}
 .dup-hw{font-family:'Libre Baskerville',serif;font-size:.9rem;font-weight:700;color:var(--accent);}
@@ -446,8 +450,14 @@ mark{background:#ffe08a;color:var(--ink);border-radius:2px;padding:0 1px;}
       </div>
     </div>
     <button class="hbtn hbtn-ghost" id="uncheckedBtn" onclick="toggleUncheckedFilter()" title="Pokaż tylko niesprawdzone">✓ Niespr.</button>
-    <button class="hbtn hbtn-ghost" onclick="openMergeMode()" title="Scal hasła">⛓</button>
-    <button class="hbtn hbtn-ghost" onclick="openDuplicates()" title="Duplikaty">Dup.</button>
+    <div style="position:relative;">
+      <button class="hbtn hbtn-ghost" onclick="toggleToolsMenu()" title="Narzędzia" id="toolsMenuBtn">🛠 Narzędzia ▾</button>
+      <div class="lang-dropdown" id="toolsDropdown">
+        <button onclick="toolsMenuAction('dup')">🔍 Znajdź duplikaty</button>
+        <button onclick="toolsMenuAction('merge')">⛓ Scal hasła (ręcznie)</button>
+        <button onclick="toolsMenuAction('showMerged')">🏷 Pokaż scalone z duplikatów</button>
+      </div>
+    </div>
     <button class="hbtn hbtn-ghost" onclick="openImport()" title="Import">↓ Imp.</button>
     <button class="hbtn hbtn-ghost" onclick="exportData()" title="Eksport">↑ Eksp.</button>
     <button class="hbtn hbtn-ghost" onclick="softRefresh()" title="Odśwież widok (bez internetu)">↺</button>
@@ -1208,7 +1218,8 @@ async function saveEntry(){
   }).filter(ex=>ex.text);
   const fields=Array.from(document.querySelectorAll('#fieldsList .sub-item')).map(item=>{const inp=item.querySelector('input[type=text]');const ta=item.querySelector('textarea');return{label:inp?.value.trim()||'',value:ta?.value.trim()||''};}).filter(f=>f.label||f.value);
   const prevChecked = editingId ? (allEntries.find(e=>e.id===editingId)?.checked || false) : false;
-  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:'',meanings,examples,fields,checked:prevChecked};
+  const prevEntry = editingId ? allEntries.find(e=>e.id===editingId) : null;
+  const entry={id:editingId||genId(),lang:document.getElementById('fLang').value,headword:hw,translation:tr,description:'',meanings,examples,fields,checked:prevChecked,dupMerged:prevEntry?.dupMerged||false,dupMergedAt:prevEntry?.dupMergedAt||''};
   await dbPut(entry);
   if(editingId){const idx=allEntries.findIndex(e=>e.id===editingId);if(idx>=0)allEntries[idx]=entry;}
   else{allEntries.push(entry);allEntries.sort((a,b)=>a.headword.localeCompare(b.headword,undefined,{sensitivity:'base'}));}
@@ -1278,7 +1289,7 @@ async function doImport(){
   try{parsed=JSON.parse(raw);}catch(e){toast('⚠ Błąd formatu JSON');return;}
   raw=null; importFileData=null; // zwolnij pamięć po sparsowaniu
   if(!Array.isArray(parsed)){toast('⚠ Dane muszą być tablicą []');return;}
-  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[],checked:e.checked||false})).filter(e=>e.headword);
+  parsed=parsed.map(e=>({id:e.id||genId(),lang:e.lang||'no',headword:e.headword||'',translation:e.translation||'',description:e.description||'',meanings:e.meanings||[],examples:e.examples||[],fields:e.fields||[],checked:e.checked||false,dupMerged:e.dupMerged||false,dupMergedAt:e.dupMergedAt||''})).filter(e=>e.headword);
   const mode=document.getElementById('importMode').value;
   const prog=document.getElementById('importProgress');
   const fill=document.getElementById('importFill');
@@ -1591,11 +1602,18 @@ function findDuplicates() {
     return;
   }
   
-  summary.textContent = `Znaleziono ${dups.length} grup potencjalnych duplikatów${dups.length > 100 ? ' (pokazano 100)' : ''}. Kliknij "Edytuj" lub "Usuń" przy wybranych hasłach.`;
-  
-  list.innerHTML = limited.map(group => `
-    <div class="dup-item">
-      <div class="dup-head">${group.type === 'exact' ? '🔴 Identyczne' : '🟡 Podobne'}: „${esc(group.key)}" — ${group.entries.length} haseł</div>
+  const exactCount = limited.filter(g => g.type === 'exact').length;
+  summary.innerHTML = `Znaleziono ${dups.length} grup potencjalnych duplikatów${dups.length > 100 ? ' (pokazano 100)' : ''}.` +
+    (exactCount > 0 ? ` <button class="dup-merge-all-btn" onclick="mergeAllExactGroups()">⛓ Scal wszystkie identyczne 🔴 (${exactCount})</button>` : '');
+
+  dupGroupsCache = limited;
+
+  list.innerHTML = limited.map((group, gidx) => `
+    <div class="dup-item" data-gidx="${gidx}">
+      <div class="dup-head">
+        <span>${group.type === 'exact' ? '🔴 Identyczne' : '🟡 Podobne'}: „${esc(group.key)}" — ${group.entries.length} haseł</span>
+        <button class="dup-merge-group-btn" onclick="mergeDupGroupByIdx(${gidx})" title="Połącz wszystkie hasła z tej grupy w jedno">⛓ Scal grupę w jedno</button>
+      </div>
       ${group.entries.map(e => `
         <div class="dup-entry" data-id="${e.id}">
           <div style="flex:1;min-width:0;cursor:pointer;" onclick="dupPreview('${e.id}')" title="Kliknij, aby zobaczyć pełną treść">
@@ -1614,6 +1632,76 @@ function findDuplicates() {
           </div>
         </div>`).join('')}
     </div>`).join('');
+}
+
+let dupGroupsCache = [];
+
+// Scal jedną grupę duplikatów w jedno hasło (pierwsze = bazowe, reszta dołączona)
+async function mergeDupGroup(entries){
+  if(!entries || entries.length < 2) return null;
+  const base = JSON.parse(JSON.stringify(entries[0]));
+  const others = entries.slice(1);
+  // Połącz tłumaczenia (bez powtórzeń)
+  const trSet = new Set();
+  const addTr = t => { if(t) t.split(',').forEach(x=>{const v=x.trim();if(v)trSet.add(v);}); };
+  addTr(base.translation);
+  others.forEach(e => addTr(e.translation));
+  base.translation = Array.from(trSet).join(', ');
+  // Dołącz znaczenia, przykłady i rubryki z pozostałych
+  base.meanings = base.meanings || [];
+  base.examples = base.examples || [];
+  base.fields = base.fields || [];
+  others.forEach(e => {
+    (e.meanings||[]).forEach(m => base.meanings.push(m));
+    (e.examples||[]).forEach(x => base.examples.push(x));
+    (e.fields||[]).forEach(f => base.fields.push(f));
+  });
+  // Znacznik scalenia z duplikatów
+  base.dupMerged = true;
+  base.dupMergedAt = new Date().toISOString();
+  // Zapisz bazę, usuń pozostałe
+  await dbPut(base);
+  const removeIds = new Set(others.map(e=>e.id));
+  for(const e of others){ await dbDelete(e.id); }
+  // Zaktualizuj pamięć podręczną
+  allEntries = allEntries.filter(e => !removeIds.has(e.id));
+  const idx = allEntries.findIndex(e => e.id === base.id);
+  if(idx >= 0) allEntries[idx] = base;
+  return base;
+}
+
+// Scal grupę po indeksie (z przycisku przy grupie) — usuwa blok grupy z listy w miejscu
+async function mergeDupGroupByIdx(gidx){
+  const group = dupGroupsCache[gidx];
+  if(!group) return;
+  if(!confirm(`Scalić ${group.entries.length} haseł z grupy „${group.key}" w jedno hasło?`)) return;
+  const merged = await mergeDupGroup(group.entries);
+  if(!merged) return;
+  // Usuń blok tej grupy z DOM (w miejscu, bez przebudowy)
+  const item = document.querySelector(`.dup-item[data-gidx="${gidx}"]`);
+  if(item) item.remove();
+  updateStats();
+  renderList();
+  toast(`✓ Scalono w jedno hasło: „${merged.headword}"`);
+}
+
+// Hurtowe scalenie wszystkich identycznych (🔴) grup
+async function mergeAllExactGroups(){
+  const exact = dupGroupsCache.filter(g => g.type === 'exact');
+  if(exact.length === 0){ toast('Brak identycznych grup do scalenia'); return; }
+  if(!confirm(`Scalić hurtowo ${exact.length} identycznych grup (🔴)? Każda grupa stanie się jednym hasłem. Tej operacji nie cofniesz pojedynczo — zrób wcześniej eksport jako kopię.`)) return;
+  const dupSummary = document.getElementById('dupSummary');
+  let done = 0;
+  for(const group of exact){
+    await mergeDupGroup(group.entries);
+    done++;
+    if(done % 10 === 0 && dupSummary) dupSummary.textContent = `Scalanie… ${done}/${exact.length}`;
+  }
+  updateStats();
+  renderList();
+  toast(`✓ Scalono ${done} identycznych grup. Znajdź je przez „🏷 Pokaż scalone z duplikatów".`, 8000);
+  // Odśwież listę duplikatów (zostały już tylko podobne 🟡)
+  findDuplicates();
 }
 
 // Usuń wiersz duplikatu z DOM w miejscu (bez przebudowy całej listy)
@@ -1781,6 +1869,64 @@ document.addEventListener('click', e => {
     if (dd) dd.classList.remove('open');
   }
 });
+
+// ── TOOLS MENU ──
+let toolsMenuOpen = false;
+function toggleToolsMenu() {
+  toolsMenuOpen = !toolsMenuOpen;
+  const dd = document.getElementById('toolsDropdown');
+  if (!dd) return;
+  if (toolsMenuOpen) {
+    const btn = document.getElementById('toolsMenuBtn');
+    const r = btn.getBoundingClientRect();
+    dd.style.top = (r.bottom + 6) + 'px';
+    const menuWidth = 220;
+    let left = r.right - menuWidth;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+    dd.style.left = left + 'px';
+    dd.style.minWidth = menuWidth + 'px';
+    dd.classList.add('open');
+  } else {
+    dd.classList.remove('open');
+  }
+}
+function closeToolsMenu(){
+  toolsMenuOpen=false;
+  const dd=document.getElementById('toolsDropdown');
+  if(dd) dd.classList.remove('open');
+}
+function toolsMenuAction(what){
+  closeToolsMenu();
+  if(what==='dup') openDuplicates();
+  else if(what==='merge') openMergeMode();
+  else if(what==='showMerged') showMergedFromDup();
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('[onclick="toggleToolsMenu()"]') &&
+      !e.target.closest('#toolsDropdown')) {
+    closeToolsMenu();
+  }
+});
+
+// Pokaż hasła powstałe ze scalenia duplikatów
+function showMergedFromDup(){
+  // wyczyść inne filtry, pokaż tylko scalone z duplikatów
+  showOnlyUnchecked=false;
+  const ub=document.getElementById('uncheckedBtn');
+  if(ub){ub.classList.remove('active-filter');ub.textContent='✓ Niespr.';}
+  document.getElementById('searchInput').value='';
+  currentQuery='';
+  filtered=allEntries.filter(e=>e.dupMerged);
+  filtered.sort((a,b)=>(b.dupMergedAt||'').localeCompare(a.dupMergedAt||''));
+  updateStats();
+  renderList();
+  if(filtered.length>0){openPanel();}
+  document.getElementById('stats-found').textContent=`Scalone z duplikatów: ${filtered.length}`;
+  document.getElementById('stats-found').style.display='inline';
+  if(filtered.length===0) toast('Brak haseł scalonych z duplikatów');
+  else toast(`Pokazano ${filtered.length} haseł scalonych z duplikatów`);
+}
 
 function toggleLangFilter(lang) {
   if (activeLangs.has(lang)) {
