@@ -868,7 +868,7 @@ function lastImportLabel(){
       when=d.toLocaleDateString('pl-PL')+' '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     }
     const what=info.exported?'ostatni eksport':'ostatni import';
-    return ` · ${what}: ${info.name}${when?` (${when})`:''}`;
+    return when ? ` · ${what} (${when})` : '';
   }catch(err){return '';}
 }
 function updateStats(){
