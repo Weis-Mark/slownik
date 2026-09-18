@@ -824,11 +824,24 @@ function matchEntry(e, q){
     // Dokładne dopasowanie - normalizuj hasło (usuń myślniki, ukośniki na końcu)
     const hwNorm = hw.replace(/[-–—/\s]+$/, '').trim();
     const qNorm = q.replace(/[-–—/\s]+$/, '').trim();
-    return hwNorm === qNorm || 
+    // Pomiń wiodący norweski rodzajnik/zaimek (en/ei/et/å) — tylko jako cały token ze spacją
+    const stripArt = s => s.replace(/^(en|ei|et|å)\s+/i, '').trim();
+    const hwBare = stripArt(hwNorm);
+    const qBare = stripArt(qNorm);
+    const bareOk = qBare && hwBare;
+    return hwNorm === qNorm ||
            hw === q ||
-           hwNorm.startsWith(qNorm + ' ') || 
+           hwNorm.startsWith(qNorm + ' ') ||
            hwNorm.startsWith(qNorm + '-') ||
-           hwNorm.startsWith(qNorm + '/');
+           hwNorm.startsWith(qNorm + '/') ||
+           (bareOk && (
+             hwBare === qBare ||
+             hwBare === qNorm ||
+             hwNorm === qBare ||
+             hwBare.startsWith(qBare + ' ') ||
+             hwBare.startsWith(qBare + '-') ||
+             hwBare.startsWith(qBare + '/')
+           ));
   } else if (searchMode === 'start') {
     // Hasło zaczyna się od szukanej frazy
     return hw.startsWith(q);
